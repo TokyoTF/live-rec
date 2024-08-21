@@ -1,34 +1,20 @@
-# live-rec
+# Live Rec
 
-An Electron application with Svelte
+With this application you can record livestream of +18 pages. 
 
-## Recommended IDE Setup
+##### This is the current support of the pages:
 
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode)
+* bongacams
+* camsoda
+* chaturbate
+* dreamcam
 
-## Project Setup
+> This app does not allow recording on private roms
 
-### Install
+Made with: [electronjs](https://electronjs.org/) + [svelte](https://svelte.dev/) + [vitejs](https://vitejs.dev/)
 
-```bash
-$ npm install
-```
+Used Template [Electron Vite](https://electron-vite.org/)
 
-### Development
+> [!WARNING]
+> I will be optimizing the code since it is all in App.svelte.
 
-```bash
-$ npm run dev
-```
-
-### Build
-
-```bash
-# For windows
-$ npm run build:win
-
-# For macOS
-$ npm run build:mac
-
-# For Linux
-$ npm run build:linux
-```

@@ -9,7 +9,7 @@ With this application you can record livestream of +18 pages.
 * chaturbate
 * dreamcam
 
-> This app does not allow recording on private roms
+> This app does not allow recording on private shows
 
 Made with: [electronjs](https://electronjs.org/) + [svelte](https://svelte.dev/) + [vitejs](https://vitejs.dev/)
 

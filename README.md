@@ -18,3 +18,5 @@ Used Template [Electron Vite](https://electron-vite.org/)
 > [!WARNING]
 > I will be optimizing the code since it is all in App.svelte.
 
+![ffre](https://github.com/user-attachments/assets/83ff9543-333d-4e54-b938-9e8c5e1faa4d)
+

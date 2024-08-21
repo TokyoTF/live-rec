@@ -90,7 +90,7 @@ export async function BongacamsUpdate(nametag) {
     status,
     thumb:
       status == 'online' || status == 'private'
-        ? `https://mobile-edge${res.localData.vsid}/stream_${res.performerData.username}.jpg`
+        ? `https://mobile-edge${res.localData.vsid}.bcvcdn.com/stream_${res.performerData.username}.jpg`
         : ''
   }
 }

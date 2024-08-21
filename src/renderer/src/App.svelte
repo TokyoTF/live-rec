@@ -47,6 +47,8 @@
   let localnametag = ''
   let locallistrec = []
   let locallistinfo = {}
+  let localrequireffmpeg = ''
+  let localrequirefolder = ''
 
   import 'vidstack/player/styles/base.css'
   import 'vidstack/player/styles/plyr/theme.css'
@@ -80,6 +82,14 @@
     } else if (locallistinfo[args.nametag]) {
       localurl = args.url
       localnametag = args.nametag
+    }
+  })
+
+  window.electron.ipcRenderer.on('Select:Folder', (event, args) => {
+    if(args.ffmpeg){
+      localrequireffmpeg = args.ffmpeg
+    }else if(args.svfolder){
+      localrequirefolder = args.svfolder
     }
   })
 
@@ -121,11 +131,20 @@
     console.log('Update list')
   })
 
+  const SelectSaveFolder = () =>
+    window.electron.ipcRenderer.send('Select:Folder', { type: 'folder' })
+  const Selectffmpeg = () => window.electron.ipcRenderer.send('Select:Folder', { type: 'file' })
+
   onDestroy(unsubinfo)
   onDestroy(unsub)
 </script>
 
 <main>
+  <input type="text" value={localrequirefolder} />
+
+  <input type="button" on:click={SelectSaveFolder} value="save folder" />
+  <input type="text" value={localrequireffmpeg} />
+  <input type="button" on:click={Selectffmpeg} value="ffmpeg select" />
   <form on:submit|preventDefault={changePost}>
     <select>
       <option value="chaturbate" selected>chaturbate</option>

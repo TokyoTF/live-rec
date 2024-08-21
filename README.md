@@ -2,12 +2,15 @@
 
 With this application you can record livestream of +18 pages. 
 
+> ffmpeg required https://github.com/BtbN/FFmpeg-Builds/releases
+
 ##### This is the current support of the pages:
 
 * bongacams
 * camsoda
 * chaturbate
 * dreamcam
+
 
 > This app does not allow recording on private shows
 

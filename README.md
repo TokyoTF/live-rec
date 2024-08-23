@@ -1,4 +1,7 @@
+
 # Live Rec <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="40"/>
+
+Last version: [![GitHub version](https://badge.fury.io/gh/Naereen%2FStrapDown.js.svg)](https://github.com/TokyoTF/live-rec)
 
 With this application you can record livestream of +18 pages. 
 

@@ -29,7 +29,7 @@ export async function Stripchat(nametag) {
       ? 'online'
       : Response.model.status == 'groupShow' || Response.model.status == 'private'
         ? 'private'
-        : Response.model.status == 'off'
+        : Response.model.status == 'off' || Response.model.status == 'idle'
           ? 'offline'
           : 'not exist'
 
@@ -78,7 +78,7 @@ export async function StripchatUpdate(nametag) {
       ? 'online'
       : res.model.status == 'groupShow' || res.model.status == 'private'
         ? 'private'
-        : res.model.status == 'off'
+        : res.model.status == 'off' || res.model.status == 'idle'
           ? 'offline'
           : 'not exist'
 

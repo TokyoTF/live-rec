@@ -26,6 +26,7 @@
     "lucide-svelte": "^0.399.0",
     "m3u8-parser": "^7.1.0",
     "node-fetch": "^3.3.2",
+    "svelte-toasts": "^1.1.2",
     "vidstack": "^1.11.25"
   },
   "devDependencies": {

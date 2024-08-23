@@ -1,6 +1,7 @@
 import WarpClass from '../lib/tools.class.js'
 
 const tool = new WarpClass()
+
 /**
  * @param {string} nametag
  */

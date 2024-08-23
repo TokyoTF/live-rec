@@ -1,10 +1,11 @@
 <script>
-  import { PlayIcon } from 'lucide-svelte'
-  export let status, thumb, nametag, provider, statusRec, recUrl, resolutions
-  const RecAdd = (providerDirect, nametagDirect) => {
-    window.electron.ipcRenderer.send('rec:add', { name: nametagDirect, provider: providerDirect })
-  }
+  import { listrec } from '../lib/store'
+  import { PlayIcon, XIcon } from 'lucide-svelte'
 
+  export let status, thumb, nametag, provider, statusRec, recUrl, resolutions
+  const RecAdd = (provider, nametag) => {
+    window.electron.ipcRenderer.send('rec:add', { name: nametag, provider: provider })
+  }
   let localRecUrl = ''
   const RecStatus = (type) => {
     window.electron.ipcRenderer.send('rec:live:status', {
@@ -15,13 +16,28 @@
       url: localRecUrl ? localRecUrl : recUrl
     })
   }
+
+  const RemoveRec = (rawnametag, rawprovider) => {
+    let newList = []
+    newList = $listrec.filter((n) => !(n.nametag == rawnametag && n.provider == rawprovider))
+    $listrec = newList
+    window.electron.ipcRenderer.send('rec:live:remove', {
+      nametag: rawnametag,
+      provider: rawprovider
+    })
+  }
 </script>
 
 <div class="itemcam">
   <div class="itemcam-image">
     <div class="itemcam-tags">
       <div class="itemcam-status" currentstatus={status}>
-        <span>{status}</span>
+        <span>{status ? status : 'Loading'}</span>
+      </div>
+      <!-- svelte-ignore a11y-click-events-have-key-events -->
+      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <div class="itemcam-remove" on:click={() => RemoveRec(nametag, provider)}>
+        <XIcon size={18} />
       </div>
 
       <div class="itemcam-play">
@@ -56,6 +72,7 @@
         <input
           type="button"
           name="rec"
+          curretState={!statusRec ? 'startRec' : 'stopRec'}
           on:click={() => RecStatus(!statusRec ? 'startRec' : 'stopRec')}
           value={!statusRec ? 'Start REC' : 'Stop REC'}
         />

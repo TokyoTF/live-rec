@@ -1,7 +1,7 @@
 //{url: "stream/hello", version: "0.0.1"}
 //{quality: "test", url: "stream/play", version: "0.0.1"}
+
 /**
- * sad
  * @param {string | Blob} nametag
  */
 

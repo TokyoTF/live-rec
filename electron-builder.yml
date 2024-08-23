@@ -1,4 +1,4 @@
-appId: com.electron.app
+appId: com.liverec.app
 productName: live-rec
 directories:
   buildResources: build

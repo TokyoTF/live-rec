@@ -8,7 +8,7 @@ import WarpClass from '../../lib/tools.class.js'
 const tool = new WarpClass()
 function createWindow() {
   const mainWindow = new BrowserWindow({
-    width: 900,
+    width: 1000,
     height: 670,
     show: false,
     autoHideMenuBar: true,
@@ -48,19 +48,31 @@ app.whenReady().then(() => {
     const url = await ListSites[args.provider].extract(args.name, args.provider)
 
     tool.recInit({ nametag: args.name, provider: args.provider, savefolder, ffmpegselect })
-    event.reply('rec:add', url)
+    event.reply('rec:add', { data: url, provider: args.provider })
+  })
+
+  ipcMain.on('rec:live:remove', async (event, args) => {
+    console.log('remove:', args.nametag)
+    tool.removeRec(args.nametag, args.provider)
   })
 
   ipcMain.on('res:status', async (event, args) => {
     event.reply('res:status', {
       nametag: args.nametag,
+      provider: args.provider,
       data: await ListSites[args.provider].update(args.nametag)
     })
   })
 
   ipcMain.on('rec:live:status', (event, args) => {
-    const rec = tool.rec(args.nametag, args.type, args.url, args.status, args.provider)
-    event.reply('rec:live:status', { nametag: args.nametag, status: rec })
+    const rec = tool.rec(
+      args.nametag,
+      args.type,
+      args.url ? args.url : '',
+      args.status,
+      args.provider
+    )
+    event.reply('rec:live:status', { nametag: args.nametag, provider: args.provider, status: rec })
   })
 
   ipcMain.on('Select:Folder', (event, args) => {
@@ -77,13 +89,12 @@ app.whenReady().then(() => {
         ]
       })
       if (typeOpen) {
-        console.log(typeOpen)
         if (args.type == 'file') {
           ffmpegselect = typeOpen[0].replace(/\\/g, '/')
         } else if (args.type == 'folder') {
           savefolder = typeOpen[0].replace(/\\/g, '/')
         }
-        event.reply("Select:Folder",{ffmpeg:ffmpegselect,svfolder:savefolder})
+        event.reply('Select:Folder', { ffmpeg: ffmpegselect, svfolder: savefolder })
       } else {
         console.log('select canceled')
       }

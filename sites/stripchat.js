@@ -6,8 +6,8 @@ const tool = new WarpClass()
  */
 
 async function RequestApi(nametag) {
-  const Api = await fetch('https://webchat.cam4.com/requestAccess?roomname=' + nametag, {
-    method: 'POST',
+  const Api = await fetch('https://stripchat.com/api/vr/v2/models/username/' + nametag, {
+    method: 'GET',
     headers: {
       Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
       'User-Agent':
@@ -17,7 +17,7 @@ async function RequestApi(nametag) {
   return await Api.json()
 }
 
-export async function Cam4(nametag) {
+export async function Stripchat(nametag) {
   let resolutions = '',
     Getresolutions = '',
     status = ''
@@ -25,28 +25,17 @@ export async function Cam4(nametag) {
   const Response = await RequestApi(nametag)
 
   status =
-    Response.status == 'success'
+    Response.model.status == 'public'
       ? 'online'
-      : Response.privateStream || Response.privateRoom
+      : Response.model.status == 'groupShow' || Response.model.status == 'private'
         ? 'private'
-        : Response.status == 'roomOffline'
+        : Response.model.status == 'off'
           ? 'offline'
           : 'not exist'
 
-  const Response_streaminfo = await fetch(
-    'https://cam4.com/rest/v1.0/profile/' + nametag + '/streamInfo'
-  )
+  const RawM3u8 = `https://edge-hls.doppiocdn.live/hls/${Response.streamName}/master/${Response.streamName}_auto.m3u8`
 
-  let Response_streamdata
-  let RawM3u8
-  if (Response_streaminfo.status == 200) {
-    Response_streamdata = await Response_streaminfo.json()
-    RawM3u8 = Response_streamdata.cdnURL
-  } else if (Response_streaminfo.status == 204) {
-    status = 'offline'
-  }
-
-  if (status == 'online' && RawM3u8 && Response_streaminfo.status == 200) {
+  if (status == 'online' && RawM3u8) {
     Getresolutions = await fetch(RawM3u8, {
       method: 'GET',
       headers: {
@@ -55,12 +44,9 @@ export async function Cam4(nametag) {
       }
     })
     if (Getresolutions.status == 200) {
-        let formatUrl = RawM3u8.slice(0, RawM3u8.indexOf('playlist.m3u8'))
-
       resolutions = tool.resolutions({
         active: true,
-        data: await Getresolutions.text(),
-        prefixUrl: formatUrl
+        data: await Getresolutions.text()
       })
     } else {
       status = 'offline'
@@ -75,20 +61,24 @@ export async function Cam4(nametag) {
     resolutions,
     thumb:
       status == 'online' || status == 'private'
-        ? 'https://snapshots.xcdnpro.com/thumbnails/' + nametag
+        ? 'https://img.strpst.com/thumbs/' +
+          new Date().getTime().toString().slice(0, -3) +
+          '/' +
+          Response.streamName +
+          '_webp'
         : ''
   }
 }
 
-export async function Cam4Update(nametag) {
+export async function StripchatUpdate(nametag) {
   const res = await RequestApi(nametag)
 
   const status =
-    res.status == 'success'
+    res.model.status == 'public'
       ? 'online'
-      : res.privateStream || res.privateRoom
+      : res.model.status == 'groupShow' || res.model.status == 'private'
         ? 'private'
-        : res.status == 'roomOffline'
+        : res.model.status == 'off'
           ? 'offline'
           : 'not exist'
 
@@ -97,7 +87,11 @@ export async function Cam4Update(nametag) {
     status,
     thumb:
       status == 'online' || status == 'private'
-        ? 'https://snapshots.xcdnpro.com/thumbnails/' + nametag
+        ? 'https://img.strpst.com/thumbs/' +
+          new Date().getTime().toString().slice(0, -3) +
+          '/' +
+          res.streamName +
+          '_webp'
         : ''
   }
 }

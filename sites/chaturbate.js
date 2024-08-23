@@ -3,7 +3,6 @@ import WarpClass from '../lib/tools.class'
 const tool = new WarpClass()
 
 /**
- * sad
  * @param {string | Blob} nametag
  */
 

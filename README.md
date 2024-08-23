@@ -13,7 +13,8 @@ With this application you can record livestream of +18 pages.
 * camsoda
 * chaturbate
 * dreamcam
-
+* stripchat
+* cam4
 
 > This app does not allow recording on private shows
 

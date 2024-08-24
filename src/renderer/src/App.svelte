@@ -9,6 +9,7 @@
   let locallistrec = []
   let localrequireffmpeg = ''
   let localrequirefolder = ''
+  let loadconfig = false
 
   import 'vidstack/player/styles/base.css'
   import 'vidstack/player/styles/plyr/theme.css'
@@ -17,19 +18,43 @@
   import 'vidstack/player/layouts/plyr'
   import 'vidstack/player/ui'
 
+  window.electron.ipcRenderer.send('Load:config')
+
   const RecAdd = (provider, nametag) => {
     window.electron.ipcRenderer.send('rec:add', { name: nametag, provider: provider })
   }
 
+  window.electron.ipcRenderer.on('Load:config', (event, args) => {
+    localrequireffmpeg = args.ffmpegselect
+    localrequirefolder = args.savefolder
+    
+    setTimeout(() => {
+      args.reclist.map((n) => {
+        locallistrec.push({ nametag: n.nametag, provider: n.provider })
+        window.electron.ipcRenderer.send('rec:add', { name: n.nametag, provider: n.provider })
+      })
+    }, 2000)
+
+    setTimeout(() => {
+      loadconfig = true
+    }, 3000)
+
+ 
+    
+  })
+
   const changePost = (input) => {
     let selProvider = input.target[0].options[input.target[0].selectedIndex].value
     let NameTag = String(input.target[1].value)
-    let selectedIndex = locallistrec.findIndex((n) => (n.nametag == NameTag && n.provider == selProvider) ? n : null)
+    let selectedIndex = locallistrec.findIndex((n) =>
+      n.nametag == NameTag && n.provider == selProvider ? n : null
+    )
     //dvr = selProvider.includes('dreamcam') ? true : false
 
     if (!locallistrec[selectedIndex]) {
       locallistrec.push({ nametag: NameTag, provider: selProvider })
       listrec.update((n) => (locallistrec = n))
+      window.electron.ipcRenderer.send('Modify:config', { nametag: NameTag, provider: selProvider })
       RecAdd(selProvider, NameTag)
     }
   }
@@ -38,11 +63,10 @@
     let selectedIndex = locallistrec.findIndex((n) =>
       n.nametag == args.data.nametag && n.provider == args.provider ? n : null
     )
-
+    console.log("url1",locallistrec[selectedIndex])
     if (!locallistrec[selectedIndex].url && !locallistrec[selectedIndex].recUrl) {
       args.data.provider = args.provider
       locallistrec[selectedIndex] = args.data
-
       localurl = args.data.url
       localnametag = args.data.nametag
       $listrec = locallistrec
@@ -55,11 +79,8 @@
   })
 
   window.electron.ipcRenderer.on('Select:Folder', (event, args) => {
-    if (args.ffmpeg) {
-      localrequireffmpeg = args.ffmpeg
-    } else if (args.svfolder) {
-      localrequirefolder = args.svfolder
-    }
+    if (args.ffmpeg) localrequireffmpeg = args.ffmpeg
+    if (args.svfolder) localrequirefolder = args.svfolder
   })
 
   window.electron.ipcRenderer.on('rec:live:status', (event, args) => {
@@ -105,9 +126,8 @@
 </script>
 
 <main>
-  
   <input type="text" value={localrequirefolder} />
-
+  
   <input type="button" on:click={SelectSaveFolder} value="save folder" />
   <input type="text" value={localrequireffmpeg} />
   <input type="button" on:click={Selectffmpeg} value="ffmpeg select" />
@@ -125,6 +145,7 @@
   </form>
   <div class="warp justify-content-bet">
     <div class="warp warp-column">
+      <div class={!loadconfig ? "spinner" : ""}></div>
       {#each locallistrec as item}
         {#if item}
           <ItemCam
@@ -141,7 +162,13 @@
     </div>
     <div class="mini-player">
       {localnametag}
-      <media-player liveEdgeTolerance={2} volume={0.2} src={localurl} crossOrigin={true} streamType={'live'}>
+      <media-player
+        liveEdgeTolerance={2}
+        volume={0.2}
+        src={localurl}
+        crossOrigin={true}
+        streamType={'live'}
+      >
         <media-provider></media-provider>
         <media-plyr-layout></media-plyr-layout>
       </media-player>

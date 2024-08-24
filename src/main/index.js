@@ -4,7 +4,10 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { ListSites } from '../../lib/warp'
 import WarpClass from '../../lib/tools.class.js'
+import { existsSync, writeFileSync, mkdirSync } from 'node:fs'
+import path from 'path'
 
+const FolderMain = path.resolve(process.env.USERPROFILE, 'Documents', 'live-rec')
 const tool = new WarpClass()
 function createWindow() {
   const mainWindow = new BrowserWindow({
@@ -23,6 +26,22 @@ function createWindow() {
     mainWindow.show()
   })
 
+  if (!existsSync(FolderMain)) {
+    mkdirSync(FolderMain, { recursive: true })
+  }
+
+  if (!existsSync(FolderMain + '/config.json')) {
+    const data = {
+      savefolder: '',
+      ffmpegselect: '',
+      autorec: false,
+      dateformat: 'dd-MM-yyyy_hh-mm-ss',
+      updatetime: 25,
+      reclist: []
+    }
+    writeFileSync(FolderMain + '/config.json', JSON.stringify(data, null, ' '))
+  }
+
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url)
     return { action: 'deny' }
@@ -34,8 +53,7 @@ function createWindow() {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
 }
-let ffmpegselect = ''
-let savefolder = ''
+
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron')
 
@@ -45,9 +63,9 @@ app.whenReady().then(() => {
 
   ipcMain.on('rec:add', async (event, args) => {
     console.log('add:', args.name, args.provider)
-    const url = await ListSites[args.provider].extract(args.name, args.provider)
 
-    tool.recInit({ nametag: args.name, provider: args.provider, savefolder, ffmpegselect })
+    const url = await ListSites[args.provider].extract(args.name, args.provider)
+    tool.recInit({ nametag: args.name, provider: args.provider })
     event.reply('rec:add', { data: url, provider: args.provider })
   })
 
@@ -75,7 +93,17 @@ app.whenReady().then(() => {
     event.reply('rec:live:status', { nametag: args.nametag, provider: args.provider, status: rec })
   })
 
+  ipcMain.on('Load:config', (event) => {
+    event.reply('Load:config', tool.loadjson())
+  })
+
+  ipcMain.on('Modify:config', (event, args) => {
+    tool.modifyjson({ raw: { name: 'reclist', value: args } })
+  })
+
   ipcMain.on('Select:Folder', (event, args) => {
+    let localselffmpeg = ''
+    let localsavefolder = ''
     try {
       const typeOpen = dialog.showOpenDialogSync({
         properties: [
@@ -90,11 +118,13 @@ app.whenReady().then(() => {
       })
       if (typeOpen) {
         if (args.type == 'file') {
-          ffmpegselect = typeOpen[0].replace(/\\/g, '/')
+          localselffmpeg = typeOpen[0].replace(/\\/g, '/')
+          tool.modifyjson({ raw: { name: 'ffmpegselect', value: typeOpen[0].replace(/\\/g, '/') } })
         } else if (args.type == 'folder') {
-          savefolder = typeOpen[0].replace(/\\/g, '/')
+          localsavefolder = typeOpen[0].replace(/\\/g, '/')
+          tool.modifyjson({ raw: { name: 'savefolder', value: typeOpen[0].replace(/\\/g, '/') } })
         }
-        event.reply('Select:Folder', { ffmpeg: ffmpegselect, svfolder: savefolder })
+        event.reply('Select:Folder', { ffmpeg: localselffmpeg, svfolder: localsavefolder })
       } else {
         console.log('select canceled')
       }

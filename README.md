@@ -1,7 +1,7 @@
 
 # Live Rec <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="40"/>
 
-Last Version: v1.0.1
+Last Version: v1.0.2
 
 With this application you can record livestream of +18 pages. 
 

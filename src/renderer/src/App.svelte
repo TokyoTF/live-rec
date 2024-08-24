@@ -39,8 +39,6 @@
       loadconfig = true
     }, 3000)
 
- 
-    
   })
 
   const changePost = (input) => {

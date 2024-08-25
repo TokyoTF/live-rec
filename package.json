@@ -1,6 +1,6 @@
 {
   "name": "live-rec",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "application to record the livestream of a page like bongacams, camsoda, chaturbate, dreamcam.",
   "main": "./out/main/index.js",
   "author": "TokyoTF",

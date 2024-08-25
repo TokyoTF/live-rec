@@ -8,7 +8,6 @@
   }
   let localRecUrl = ''
   const RecStatus = (type) => {
-    console.log(type)
     window.electron.ipcRenderer.send('rec:live:status', {
       status,
       nametag,

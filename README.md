@@ -3,6 +3,8 @@
 
 Last Version: v1.0.3
 
+>If you have problems with documents/config.json I recommend deleting it, obviously saving the reclist to move it to the new config.json that is generated.
+
 With this application you can record livestream of +18 pages. 
 
 > [ffmpeg](https://github.com/BtbN/FFmpeg-Builds/releases) required

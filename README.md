@@ -3,7 +3,7 @@
 
 Last Version: v1.0.3
 
->If you have problems with documents/config.json I recommend deleting it, obviously saving the reclist to move it to the new config.json that is generated.
+> If you have problems with documents/live-rec/config.json I recommend deleting it, obviously saving the reclist copy and paste it to the new config.json that is generated.
 
 With this application you can record livestream of +18 pages. 
 

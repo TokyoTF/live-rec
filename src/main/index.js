@@ -35,7 +35,9 @@ function createWindow() {
       savefolder: '',
       ffmpegselect: '',
       autorec: false,
-      dateformat: 'dd-MM-yyyy_hh-mm-ss',
+      autocreatefolder: false,
+      autocreatefolderby: 'nametag',
+      dateformat: 'model-site-dd-MM-yyyy_hh-mm-ss',
       updatetime: 25,
       reclist: []
     }
@@ -57,6 +59,8 @@ function createWindow() {
 app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.electron')
 
+  let dateformat = ''
+
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
@@ -65,8 +69,12 @@ app.whenReady().then(() => {
     console.log('add:', args.name, args.provider)
 
     const url = await ListSites[args.provider].extract(args.name, args.provider)
-    tool.recInit({ nametag: args.name, provider: args.provider })
-    event.reply('rec:add', { data: url, provider: args.provider })
+    if (url.status == 'online' || url.status == 'offline' || url.status == 'private') {
+      await tool.recInit({ nametag: args.name, provider: args.provider, dateformat })
+      setTimeout(() => {
+        event.reply('rec:add', { data: url, provider: args.provider })
+      }, 500)
+    }
   })
 
   ipcMain.on('rec:live:remove', async (event, args) => {
@@ -82,23 +90,28 @@ app.whenReady().then(() => {
     })
   })
 
-  ipcMain.on('rec:live:status', (event, args) => {
-    const rec = tool.rec(
+  ipcMain.on('rec:live:status', async (event, args) => {
+    const rec = await tool.rec(
       args.nametag,
       args.type,
       args.url ? args.url : '',
       args.status,
-      args.provider
+      args.provider,
+      dateformat
     )
     event.reply('rec:live:status', { nametag: args.nametag, provider: args.provider, status: rec })
   })
 
   ipcMain.on('Load:config', (event) => {
-    event.reply('Load:config', tool.loadjson())
+    const load = tool.loadjson()
+    dateformat = load.dateformat
+    event.reply('Load:config', load)
   })
 
   ipcMain.on('Modify:config', (event, args) => {
-    tool.modifyjson({ raw: { name: 'reclist', value: args } })
+    if (args.name == 'dateformat') dateformat = args.value
+
+    tool.modifyjson({ raw: { name: args.name, value: args.value } })
   })
 
   ipcMain.on('Select:Folder', (event, args) => {

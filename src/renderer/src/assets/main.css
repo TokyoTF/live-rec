@@ -55,6 +55,10 @@
   background-color: #BF463F;
 }
 
+.itemcam-status[currentstatus="loading"] {
+  background-color: #374ad5;
+}
+
 .itemcam-status[currentstatus="private"] {
   background-color: #BFA33F;
 }
@@ -204,7 +208,7 @@
   background-color: #353535;
 }
 
-.main-form select[name="suplist"]{
+select[name="suplist"]{
   height: 35px;
   color: #8b8b8b;
   border-radius: 5rem;

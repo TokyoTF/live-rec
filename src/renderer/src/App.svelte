@@ -4,13 +4,6 @@
   import ItemCam from './components/itemCam.svelte'
   import { onDestroy } from 'svelte'
 
-  let localurl = ''
-  let localnametag = ''
-  let locallistrec = []
-  let localrequireffmpeg = ''
-  let localrequirefolder = ''
-  let loadconfig = false
-
   import 'vidstack/player/styles/base.css'
   import 'vidstack/player/styles/plyr/theme.css'
 
@@ -18,27 +11,42 @@
   import 'vidstack/player/layouts/plyr'
   import 'vidstack/player/ui'
 
+  let localurl = ''
+  let localnametag = ''
+  let locallistrec = []
+  let localrequireffmpeg = ''
+  let localrequirefolder = ''
+  let localdateformat = 'model-site-dd-MM-yyyy_hh-mm-ss'
+  let loadconfig = false
+
   window.electron.ipcRenderer.send('Load:config')
 
   const RecAdd = (provider, nametag) => {
-    window.electron.ipcRenderer.send('rec:add', { name: nametag, provider: provider })
+    window.electron.ipcRenderer.send('rec:add', {
+      name: nametag,
+      provider: provider
+    })
   }
 
   window.electron.ipcRenderer.on('Load:config', (event, args) => {
     localrequireffmpeg = args.ffmpegselect
     localrequirefolder = args.savefolder
-    
+    localdateformat = args.dateformat
     setTimeout(() => {
-      args.reclist.map((n) => {
-        locallistrec.push({ nametag: n.nametag, provider: n.provider })
-        window.electron.ipcRenderer.send('rec:add', { name: n.nametag, provider: n.provider })
+      args.reclist.map((n, i) => {
+        setTimeout(() => {
+          locallistrec.push({ nametag: n.nametag, provider: n.provider })
+          window.electron.ipcRenderer.send('rec:add', {
+            name: n.nametag,
+            provider: n.provider
+          })
+        }, 250 * i)
       })
-    }, 2000)
+    }, 1300)
 
     setTimeout(() => {
       loadconfig = true
-    }, 3000)
-
+    }, 2300)
   })
 
   const changePost = (input) => {
@@ -49,10 +57,13 @@
     )
     //dvr = selProvider.includes('dreamcam') ? true : false
 
-    if (!locallistrec[selectedIndex]) {
+    if (!locallistrec[selectedIndex] && NameTag && selProvider) {
       locallistrec.push({ nametag: NameTag, provider: selProvider })
       listrec.update((n) => (locallistrec = n))
-      window.electron.ipcRenderer.send('Modify:config', { nametag: NameTag, provider: selProvider })
+      window.electron.ipcRenderer.send('Modify:config', {
+        name: 'reclist',
+        value: { nametag: NameTag, provider: selProvider }
+      })
       RecAdd(selProvider, NameTag)
     }
   }
@@ -61,19 +72,16 @@
     let selectedIndex = locallistrec.findIndex((n) =>
       n.nametag == args.data.nametag && n.provider == args.provider ? n : null
     )
-    console.log("url1",locallistrec[selectedIndex])
+
     if (!locallistrec[selectedIndex].url && !locallistrec[selectedIndex].recUrl) {
       args.data.provider = args.provider
       locallistrec[selectedIndex] = args.data
-      localurl = args.data.url
-      localnametag = args.data.nametag
       $listrec = locallistrec
-      listrec.update((n) => (locallistrec = n))
-    } else if (locallistrec[selectedIndex].url) {
+    }
+    if (locallistrec[selectedIndex].url && loadconfig && args.data.status == "online") {
       localurl = args.data.url
       localnametag = args.data.nametag
     }
-    console.log(locallistrec[selectedIndex])
   })
 
   window.electron.ipcRenderer.on('Select:Folder', (event, args) => {
@@ -85,7 +93,6 @@
     let selectedIndex = locallistrec.findIndex((n) =>
       n.nametag == args.nametag && n.provider == args.provider ? n : null
     )
-
     locallistrec[selectedIndex].statusRec = args.status
   })
 
@@ -120,15 +127,27 @@
     window.electron.ipcRenderer.send('Select:Folder', { type: 'folder' })
   const Selectffmpeg = () => window.electron.ipcRenderer.send('Select:Folder', { type: 'file' })
 
+  const updatedate = () => {
+    window.electron.ipcRenderer.send('Modify:config', {
+      name: 'dateformat',
+      value: localdateformat
+    })
+  }
+
   onDestroy(unsub)
 </script>
 
 <main>
   <input type="text" value={localrequirefolder} />
-  
   <input type="button" on:click={SelectSaveFolder} value="save folder" />
   <input type="text" value={localrequireffmpeg} />
   <input type="button" on:click={Selectffmpeg} value="ffmpeg select" />
+  <select name="suplist" bind:value={localdateformat} on:change={updatedate}>
+    <option value="model-site-dd-MM-yyyy_hh-mm-ss" selected>model-site-dd-MM-yyyy_hh-mm-ss</option>
+    <option value="model-site-yyyyMMdd-hhmmss">model-site-yyyyMMdd-hhmmss</option>
+    <option value="model-yyyyMMdd-hhmmss">model-yyyyMMdd-hhmmss</option>
+  </select>
+
   <form on:submit|preventDefault={changePost} class="main-form">
     <select name="suplist">
       <option value="chaturbate" selected>chaturbate</option>
@@ -141,11 +160,12 @@
     <input type="text" placeholder="nametag" />
     <button type="submit"><PlusIcon color={'#8b8b8b'} size={20} /></button>
   </form>
+
   <div class="warp justify-content-bet">
     <div class="warp warp-column">
-      <div class={!loadconfig ? "spinner" : ""}></div>
+      <div class={!loadconfig ? 'spinner' : ''}></div>
       {#each locallistrec as item}
-        {#if item}
+        {#if item.nametag}
           <ItemCam
             nametag={item.nametag}
             recUrl={item.recUrl}
@@ -161,9 +181,9 @@
     <div class="mini-player">
       {localnametag}
       <media-player
-        liveEdgeTolerance={2}
+        liveEdgeTolerance={0}
         volume={0.2}
-        src={localurl}
+        src={localurl ? localurl : ''}
         crossOrigin={true}
         streamType={'live'}
       >

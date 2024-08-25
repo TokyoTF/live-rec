@@ -36,9 +36,12 @@ export async function Bongacams(nametag) {
     '/playlist.m3u8'
 
   const status =
-    Response.localData.videoServerUrl && Response.performerData.showType == 'public'
+    Response.localData.videoServerUrl &&
+    Response.performerData.showType == 'public' &&
+    !Response.performerData.isAway
       ? 'online'
-      : Response.localData.videoServerUrl && Response.performerData.showType == 'private'
+      : (Response.localData.videoServerUrl && Response.performerData.showType == 'private') ||
+          (Response.localData.videoServerUrl && Response.performerData.isAway)
         ? 'private'
         : Response.status == 'error'
           ? 'user not exist'
@@ -76,9 +79,12 @@ export async function BongacamsUpdate(nametag) {
   const res = await RequestApi(nametag)
 
   const status =
-    res.localData.videoServerUrl && res.performerData.showType == 'public'
+    res.localData.videoServerUrl &&
+    res.performerData.showType == 'public' &&
+    !res.performerData.isAway
       ? 'online'
-      : res.localData.videoServerUrl && res.performerData.showType == 'private'
+      : (res.localData.videoServerUrl && res.performerData.showType == 'private') ||
+          (res.localData.videoServerUrl && res.performerData.isAway)
         ? 'private'
         : res.status == 'error'
           ? 'user not exist'

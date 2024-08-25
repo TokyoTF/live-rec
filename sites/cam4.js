@@ -41,7 +41,17 @@ export async function Cam4(nametag) {
   let RawM3u8
   if (Response_streaminfo.status == 200) {
     Response_streamdata = await Response_streaminfo.json()
-    RawM3u8 = Response_streamdata.cdnURL
+
+    if (!Response_streamdata.canUseCDN) {
+      status = 'private'
+    } else if (Response_streamdata.canUseCDN) {
+      if (Response_streamdata.abr.length) {
+        RawM3u8 = Response_streamdata.cdnURL
+        resolutions = []
+      } else {
+        status == 'offline'
+      }
+    }
   } else if (Response_streaminfo.status == 204) {
     status = 'offline'
   }
@@ -55,17 +65,16 @@ export async function Cam4(nametag) {
       }
     })
     if (Getresolutions.status == 200) {
-        let formatUrl = RawM3u8.slice(0, RawM3u8.indexOf('playlist.m3u8'))
-
       resolutions = tool.resolutions({
         active: true,
         data: await Getresolutions.text(),
-        prefixUrl: formatUrl
+        prefixUrl: { directurl: RawM3u8 }
       })
     } else {
       status = 'offline'
     }
   }
+
   return {
     nametag,
     status,
@@ -82,11 +91,17 @@ export async function Cam4(nametag) {
 
 export async function Cam4Update(nametag) {
   const res = await RequestApi(nametag)
+  const Response_streaminfo = await fetch(
+    'https://cam4.com/rest/v1.0/profile/' + nametag + '/streamInfo'
+  )
+  let Response_streamdata
+
+  Response_streamdata = await Response_streaminfo.json()
 
   const status =
-    res.status == 'success'
+    res.status == 'success' && Response_streamdata.canUseCDN
       ? 'online'
-      : res.privateStream || res.privateRoom
+      : res.privateStream || res.privateRoom || !Response_streamdata.canUseCDN
         ? 'private'
         : res.status == 'roomOffline'
           ? 'offline'

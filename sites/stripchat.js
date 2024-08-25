@@ -46,7 +46,8 @@ export async function Stripchat(nametag) {
     if (Getresolutions.status == 200) {
       resolutions = tool.resolutions({
         active: true,
-        data: await Getresolutions.text()
+        data: await Getresolutions.text(),
+        prefixUrl: { directurl: RawM3u8 }
       })
     } else {
       status = 'offline'

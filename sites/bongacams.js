@@ -25,27 +25,36 @@ async function RequestApi(nametag) {
 
 export async function Bongacams(nametag) {
   let resolutions = '',
-    Getresolutions = ''
+    Getresolutions = '',
+    status,
+    RawM3u8
 
   const Response = await RequestApi(nametag)
-  const RawM3u8 =
+
+  status =
+    Response.localData.videoServerUrl &&
+    Response.performerData.showType == 'public' &&
+    !Response.performerData.isAway &&
+    Response.performerData.isOnline
+      ? 'online'
+      : (Response.localData.videoServerUrl &&
+            Response.performerData.showType == 'private' &&
+            Response.performerData.isOnline) ||
+          (Response.localData.videoServerUrl &&
+            Response.performerData.isAway &&
+            Response.performerData.isOnline)
+        ? 'private'
+        : Response.status == 'error'
+          ? 'user not exist'
+          : 'offline'
+
+  RawM3u8 =
     'https:' +
     Response.localData.videoServerUrl +
     '/hls/stream_' +
     Response.performerData.username +
     '/playlist.m3u8'
 
-  const status =
-    Response.localData.videoServerUrl &&
-    Response.performerData.showType == 'public' &&
-    !Response.performerData.isAway
-      ? 'online'
-      : (Response.localData.videoServerUrl && Response.performerData.showType == 'private') ||
-          (Response.localData.videoServerUrl && Response.performerData.isAway)
-        ? 'private'
-        : Response.status == 'error'
-          ? 'user not exist'
-          : ''
   if (status == 'online') {
     Getresolutions = await fetch(RawM3u8, {
       method: 'GET',
@@ -81,14 +90,17 @@ export async function BongacamsUpdate(nametag) {
   const status =
     res.localData.videoServerUrl &&
     res.performerData.showType == 'public' &&
-    !res.performerData.isAway
+    !res.performerData.isAway &&
+    res.performerData.isOnline
       ? 'online'
-      : (res.localData.videoServerUrl && res.performerData.showType == 'private') ||
-          (res.localData.videoServerUrl && res.performerData.isAway)
+      : (res.localData.videoServerUrl &&
+            res.performerData.showType == 'private' &&
+            res.performerData.isOnline) ||
+          (res.localData.videoServerUrl && res.performerData.isAway && res.performerData.isOnline)
         ? 'private'
         : res.status == 'error'
           ? 'user not exist'
-          : ''
+          : 'offline'
 
   console.log('check:', nametag + '/' + status)
   return {

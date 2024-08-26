@@ -20,7 +20,9 @@ async function RequestApi(nametag) {
 export async function Cam4(nametag) {
   let resolutions = '',
     Getresolutions = '',
-    status = ''
+    status = '',
+    RawM3u8,
+    Response_streamdata
 
   const Response = await RequestApi(nametag)
 
@@ -37,8 +39,6 @@ export async function Cam4(nametag) {
     'https://cam4.com/rest/v1.0/profile/' + nametag + '/streamInfo'
   )
 
-  let Response_streamdata
-  let RawM3u8
   if (Response_streaminfo.status == 200) {
     Response_streamdata = await Response_streaminfo.json()
 

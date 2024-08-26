@@ -21,7 +21,8 @@ async function RequestApi(nametag) {
 export async function Camsoda(nametag) {
   let resolutions = '',
     Getresolutions = '',
-    status = ''
+    status = '',
+    RawM3u8
 
   const Response = await RequestApi(nametag)
 
@@ -36,7 +37,7 @@ export async function Camsoda(nametag) {
           ? 'Not Exist'
           : 'offline'
 
-  const RawM3u8 =
+  RawM3u8 =
     Response.stream.stream_name && Response.stream.edge_servers.length
       ? `https://${Response.stream.edge_servers[0]}/${Response.stream.stream_name}_v1/index.m3u8?token=${Response.stream.token}`
       : ''

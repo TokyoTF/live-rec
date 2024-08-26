@@ -40,13 +40,13 @@
             name: n.nametag,
             provider: n.provider
           })
-        }, 250 * i)
+        }, 600 * i)
       })
-    }, 1300)
+    }, 1100)
 
     setTimeout(() => {
       loadconfig = true
-    }, 2300)
+    }, 2200)
   })
 
   const changePost = (input) => {
@@ -99,7 +99,6 @@
 
   setInterval(() => {
     if (locallistrec.length) {
-  
       locallistrec.map((v,i) => {
         setTimeout(() => {
         window.electron.ipcRenderer.send('rec:live:status', {
@@ -109,11 +108,10 @@
           status: v.status
         })
         window.electron.ipcRenderer.send('res:status', { nametag: v.nametag, provider: v.provider })
-      }, 150 * i);
+      }, 600 * i);
       })
-
     }
-  }, 1000 * 25)
+  }, 1000 * 50)
 
   window.electron.ipcRenderer.on('res:status', (event, args) => {
     let selectedIndex = locallistrec.findIndex((n) =>

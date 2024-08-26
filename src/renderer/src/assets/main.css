@@ -181,6 +181,8 @@
   min-width: 430px;
   height: 100%;
   aspect-ratio: 16/9;
+  position: sticky;
+  top: 4rem;
 }
 
 .recPlay {
@@ -193,7 +195,11 @@
   justify-content: center;
   gap: 10px;
   margin-block: 15px;
-
+  position: sticky;
+  top: -1px;
+  z-index: 999;
+  background: #1b1b1f;
+  padding-block: 10px;
 }
 
 .main-form input[placeholder="nametag"] {
@@ -208,7 +214,7 @@
   background-color: #353535;
 }
 
-select[name="suplist"]{
+select[name="suplist"] {
   height: 35px;
   color: #8b8b8b;
   border-radius: 5rem;
@@ -223,7 +229,7 @@ select[name="suplist"]{
 .main-form button[type="submit"] {
   width: 35px;
   height: 35px;
-  transition: 0.3s ease box-shadow,0.3s ease background-color;
+  transition: 0.3s ease box-shadow, 0.3s ease background-color;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -259,6 +265,6 @@ select[name="suplist"]{
 
 @keyframes spinner-c7wet2 {
   100% {
-     transform: rotate(1turn);
+    transform: rotate(1turn);
   }
 }

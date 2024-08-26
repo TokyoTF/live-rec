@@ -76,7 +76,8 @@
     if (!locallistrec[selectedIndex].url && !locallistrec[selectedIndex].recUrl) {
       args.data.provider = args.provider
       locallistrec[selectedIndex] = args.data
-      $listrec = locallistrec
+      
+      $listrec = locallistrec //.sort((a,b) => String(b.status).localeCompare(String(a.status)))
     }
     if (locallistrec[selectedIndex].url && loadconfig && args.data.status == "online") {
       localurl = args.data.url

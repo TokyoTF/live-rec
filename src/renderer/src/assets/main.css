@@ -24,6 +24,7 @@
 }
 
 .warp.justify-content-bet {
+  gap: 35px;
   justify-content: space-between;
 }
 
@@ -215,9 +216,9 @@
 }
 
 .scroll {
-  max-height: 76vh;
+  max-height: 77vh;
   overflow-y: overlay;
-  padding-right: 7rem;
+  padding-right: 5rem;
   overflow-x: hidden;
   resize: both;
 }

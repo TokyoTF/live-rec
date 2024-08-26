@@ -99,7 +99,9 @@
 
   setInterval(() => {
     if (locallistrec.length) {
-      locallistrec.map((v) => {
+  
+      locallistrec.map((v,i) => {
+        setTimeout(() => {
         window.electron.ipcRenderer.send('rec:live:status', {
           nametag: v.nametag,
           type: 'checkRec',
@@ -107,7 +109,9 @@
           status: v.status
         })
         window.electron.ipcRenderer.send('res:status', { nametag: v.nametag, provider: v.provider })
+      }, 100 * i);
       })
+
     }
   }, 1000 * 25)
 
@@ -163,7 +167,7 @@
   </form>
 
   <div class="warp justify-content-bet">
-    <div class="warp warp-column">
+    <div class="warp warp-column scroll">
       <div class={!loadconfig ? 'spinner' : ''}></div>
       {#each locallistrec as item}
         {#if item.nametag}

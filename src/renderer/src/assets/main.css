@@ -1,5 +1,20 @@
 @import './base.css';
 
+.scroll::-webkit-scrollbar {
+    width: 8px;
+}
+
+.scroll::-webkit-scrollbar-track {
+    background: #f9f9f92a;
+    padding: 5px;
+    border-radius: 5rem;
+}
+
+.scroll::-webkit-scrollbar-thumb {
+    background: #727272;
+    border-radius: 5rem;
+}
+
 .warp {
   display: flex;
 }
@@ -129,6 +144,7 @@
 
 .itemcam-image {
   width: 150px;
+  min-height: 90px;
   min-width: 150px;
   height: 100%;
   border-radius: 4px;
@@ -189,6 +205,13 @@
   display: none;
 }
 
+.scroll {
+  max-height: 80vh;
+  overflow-y: overlay;
+  padding-right: 25px;
+  overflow-x: hidden;
+}
+
 .main-form {
   display: flex;
   align-items: center;
@@ -209,9 +232,14 @@
   border-radius: 5rem;
   border: none;
   outline: none;
+  transition: 0.3s ease box-shadow;
   font-weight: 600;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   background-color: #353535;
+}
+
+.main-form input[placeholder="nametag"]:focus-visible {
+  box-shadow: 0px 0px 0px 1px rgb(134, 134, 134);
 }
 
 select[name="suplist"] {

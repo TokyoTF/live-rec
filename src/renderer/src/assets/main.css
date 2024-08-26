@@ -199,6 +199,15 @@
   aspect-ratio: 16/9;
   position: sticky;
   top: 4rem;
+  right: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mini-player > span {
+  font-weight: 600;
+  font-size: 1rem;
 }
 
 .recPlay {
@@ -206,10 +215,11 @@
 }
 
 .scroll {
-  max-height: 80vh;
+  max-height: 76vh;
   overflow-y: overlay;
-  padding-right: 25px;
+  padding-right: 7rem;
   overflow-x: hidden;
+  resize: both;
 }
 
 .main-form {
@@ -270,6 +280,10 @@ select[name="suplist"] {
 .main-form button[type="submit"]:hover {
   box-shadow: 0px 0px 0px 1px rgb(134, 134, 134);
   background-color: #4c4c4c;
+}
+
+media-player {
+  box-shadow: 0px 0px 0px 1px #313131;
 }
 
 .spinner {

@@ -184,7 +184,7 @@
       {/each}
     </div>
     <div class="mini-player">
-      {localnametag}
+      <span>{localnametag}</span>
       <media-player
         liveEdgeTolerance={0}
         volume={0.2}

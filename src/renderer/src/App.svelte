@@ -109,7 +109,7 @@
           status: v.status
         })
         window.electron.ipcRenderer.send('res:status', { nametag: v.nametag, provider: v.provider })
-      }, 100 * i);
+      }, 150 * i);
       })
 
     }

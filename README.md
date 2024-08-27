@@ -1,15 +1,14 @@
 
-# Live Rec <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="40"/>
-
-Last Version: v1.0.3
-
-> If you have problems with documents/live-rec/config.json I recommend deleting it, obviously saving the reclist copy and paste it to the new config.json that is generated.
+# Live Rec v1.0.3 <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="40"/>
 
 With this application you can record livestream of +18 pages. 
 
-> [ffmpeg](https://github.com/BtbN/FFmpeg-Builds/releases) required
+> require [ffmpeg](https://github.com/BtbN/FFmpeg-Builds/releases)
 
-##### This is the current support of the pages:
+> [!NOTE]
+> This app does not allow recording on private shows
+
+#### This is the current support of the pages:
 
 * bongacams
 * camsoda
@@ -18,7 +17,23 @@ With this application you can record livestream of +18 pages.
 * stripchat
 * cam4
 
-> This app does not allow recording on private shows
+Future features
+- [ ] Automatic Recording
+- [ ] Automatic create folder by (nametag or provider)
+- [ ] Bash command line
+- [ ] More format extension
+
+Support OS
+- [x] Windows
+- [ ] Linux
+- [ ] Mac
+
+
+> [!TIP]
+> If you have problems with config.json location(documents/live-rec/config.json).
+> 
+> I recommend deleting it, obviously saving the reclist copy and paste it to the new config.json that is generated.
+
 
 Made with: [electronjs](https://electronjs.org/) + [svelte](https://svelte.dev/) + [vitejs](https://vitejs.dev/)
 

@@ -21,6 +21,9 @@ Future features
 - [ ] Automatic Recording
 - [ ] Automatic create folder by (nametag or provider)
 - [ ] Bash command line
+- [ ] Recording time
+- [ ] Order by status
+- [ ] Update status manual (by or only current status)
 - [ ] More format extension
 
 Support OS

@@ -63,9 +63,9 @@ export async function Stripchat(nametag) {
     thumb:
       status == 'online' || status == 'private'
         ? 'https://img.strpst.com/thumbs/' +
-          new Date().getTime().toString().slice(0, -3) +
+          (new Date().getTime().toString().slice(0, -3) - 40) +
           '/' +
-          Response.streamName +
+          Response.model.id +
           '_webp'
         : ''
   }
@@ -89,9 +89,9 @@ export async function StripchatUpdate(nametag) {
     thumb:
       status == 'online' || status == 'private'
         ? 'https://img.strpst.com/thumbs/' +
-          new Date().getTime().toString().slice(0, -3) +
+        (new Date().getTime().toString().slice(0, -3) - 40) +
           '/' +
-          res.streamName +
+          res.model.id +
           '_webp'
         : ''
   }

@@ -32,7 +32,6 @@
     localrequireffmpeg = args.ffmpegselect
     localrequirefolder = args.savefolder
     localdateformat = args.dateformat
-    console.log(args)
     if (!args.reclist.length) {
       loadconfig = true
     } else {
@@ -149,13 +148,10 @@
     let selectedIndex = locallistrec.findIndex((n) =>
       n.nametag == args.data.nametag && n.provider == args.provider ? n : null
     )
+    args.data.provider = args.provider
+    locallistrec[selectedIndex] = args.data
 
-    if (!locallistrec[selectedIndex].url && !locallistrec[selectedIndex].recUrl) {
-      args.data.provider = args.provider
-      locallistrec[selectedIndex] = args.data
-
-      $listrec = locallistrec
-    }
+    $listrec = locallistrec
   })
 
   const unsub = listrec.subscribe((v) => {

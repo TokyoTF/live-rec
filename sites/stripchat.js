@@ -27,7 +27,9 @@ export async function Stripchat(nametag) {
   status =
     Response.model.status == 'public'
       ? 'online'
-      : Response.model.status == 'groupShow' || Response.model.status == 'private'
+      : Response.model.status == 'groupShow' ||
+          Response.model.status == 'private' ||
+          Response.model.status == 'p2p'
         ? 'private'
         : Response.model.status == 'off' || Response.model.status == 'idle'
           ? 'offline'
@@ -63,9 +65,9 @@ export async function Stripchat(nametag) {
     thumb:
       status == 'online' || status == 'private'
         ? 'https://img.strpst.com/thumbs/' +
-          new Date().getTime().toString().slice(0, -3) +
+          (new Date().getTime().toString().slice(0, -3) - 40) +
           '/' +
-          Response.streamName +
+          Response.model.id +
           '_webp'
         : ''
   }
@@ -77,7 +79,9 @@ export async function StripchatUpdate(nametag) {
   const status =
     res.model.status == 'public'
       ? 'online'
-      : res.model.status == 'groupShow' || res.model.status == 'private'
+      : res.model.status == 'groupShow' ||
+          res.model.status == 'private' ||
+          res.model.status == 'p2p'
         ? 'private'
         : res.model.status == 'off' || res.model.status == 'idle'
           ? 'offline'
@@ -89,9 +93,9 @@ export async function StripchatUpdate(nametag) {
     thumb:
       status == 'online' || status == 'private'
         ? 'https://img.strpst.com/thumbs/' +
-          new Date().getTime().toString().slice(0, -3) +
+          (new Date().getTime().toString().slice(0, -3) - 40) +
           '/' +
-          res.streamName +
+          res.model.id +
           '_webp'
         : ''
   }

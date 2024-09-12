@@ -45,7 +45,7 @@ export async function Cam4(nametag) {
     if (!Response_streamdata.canUseCDN) {
       status = 'private'
     } else if (Response_streamdata.canUseCDN) {
-      if (Response_streamdata.abr.length) {
+      if (Response_streamdata.abr == false || Response_streamdata.abr == true) {
         RawM3u8 = Response_streamdata.cdnURL
         resolutions = []
       } else {

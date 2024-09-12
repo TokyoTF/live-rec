@@ -32,27 +32,31 @@
     localrequireffmpeg = args.ffmpegselect
     localrequirefolder = args.savefolder
     localdateformat = args.dateformat
-    setTimeout(() => {
-      args.reclist.map((n, i) => {
-        setTimeout(() => {
-          if(i + 1 !== args.reclist.length){
-          locallistrec.push({ nametag: n.nametag, provider: n.provider })
-          window.electron.ipcRenderer.send('rec:add', {
-            name: n.nametag,
-            provider: n.provider
-          })
-        }else if(i + 1 == args.reclist.length) {
-          locallistrec.push({ nametag: n.nametag, provider: n.provider })
-          loadconfig = true
-          window.electron.ipcRenderer.send('rec:add', {
-            name: n.nametag,
-            provider: n.provider
-          })
-        }
-        }, 600 * i)
-      })
-    }, 1100)
-
+    console.log(args)
+    if (!args.reclist.length) {
+      loadconfig = true
+    } else {
+      setTimeout(() => {
+        args.reclist.map((n, i) => {
+          setTimeout(() => {
+            if (i + 1 !== args.reclist.length) {
+              locallistrec.push({ nametag: n.nametag, provider: n.provider })
+              window.electron.ipcRenderer.send('rec:add', {
+                name: n.nametag,
+                provider: n.provider
+              })
+            } else if (i + 1 == args.reclist.length) {
+              locallistrec.push({ nametag: n.nametag, provider: n.provider })
+              loadconfig = true
+              window.electron.ipcRenderer.send('rec:add', {
+                name: n.nametag,
+                provider: n.provider
+              })
+            }
+          }, 600 * i)
+        })
+      }, 1100)
+    }
   })
 
   const changePost = (input) => {

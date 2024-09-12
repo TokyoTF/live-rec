@@ -77,6 +77,18 @@ app.whenReady().then(() => {
     }
   })
 
+  ipcMain.on('rec:recovery', async (event, args) => {
+    console.log('recovey:', args.name, args.provider)
+
+    const url = await ListSites[args.provider].extract(args.name, args.provider)
+    if (url.status == 'online' || url.status == 'offline' || url.status == 'private') {
+      await tool.recInit({ nametag: args.name, provider: args.provider, dateformat })
+      setTimeout(() => {
+        event.reply('rec:recovery', { data: url, provider: args.provider })
+      }, 500)
+    }
+  })
+
   ipcMain.on('rec:live:remove', async (event, args) => {
     console.log('remove:', args.nametag)
     tool.removeRec(args.nametag, args.provider)

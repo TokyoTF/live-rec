@@ -303,7 +303,7 @@ media-player {
   align-items: center;
   justify-content: center;
   margin: auto;
-  z-index: 99;
+  z-index: 999;
 }
 
 @keyframes spinner-c7wet2 {

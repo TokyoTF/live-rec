@@ -1,5 +1,5 @@
 <script>
-  import { listrec } from './lib/store'
+  import { listrec, localview, localname } from './lib/store'
   import { PlusIcon } from 'lucide-svelte'
   import ItemCam from './components/itemCam.svelte'
   import { onDestroy } from 'svelte'
@@ -35,18 +35,24 @@
     setTimeout(() => {
       args.reclist.map((n, i) => {
         setTimeout(() => {
+          if(i + 1 !== args.reclist.length){
           locallistrec.push({ nametag: n.nametag, provider: n.provider })
           window.electron.ipcRenderer.send('rec:add', {
             name: n.nametag,
             provider: n.provider
           })
+        }else if(i + 1 == args.reclist.length) {
+          locallistrec.push({ nametag: n.nametag, provider: n.provider })
+          loadconfig = true
+          window.electron.ipcRenderer.send('rec:add', {
+            name: n.nametag,
+            provider: n.provider
+          })
+        }
         }, 600 * i)
       })
     }, 1100)
 
-    setTimeout(() => {
-      loadconfig = true
-    }, 2200)
   })
 
   const changePost = (input) => {
@@ -76,12 +82,12 @@
     if (!locallistrec[selectedIndex].url && !locallistrec[selectedIndex].recUrl) {
       args.data.provider = args.provider
       locallistrec[selectedIndex] = args.data
-      
+
       $listrec = locallistrec //.sort((a,b) => String(b.status).localeCompare(String(a.status)))
     }
-    if (locallistrec[selectedIndex].url && loadconfig && args.data.status == "online") {
-      localurl = args.data.url
-      localnametag = args.data.nametag
+    if (locallistrec[selectedIndex].url && loadconfig && args.data.status == 'online') {
+      $localview = args.data.url
+      $localname = args.data.nametag
     }
   })
 
@@ -99,16 +105,19 @@
 
   setInterval(() => {
     if (locallistrec.length) {
-      locallistrec.map((v,i) => {
+      locallistrec.map((v, i) => {
         setTimeout(() => {
-        window.electron.ipcRenderer.send('rec:live:status', {
-          nametag: v.nametag,
-          type: 'checkRec',
-          provider: v.provider,
-          status: v.status
-        })
-        window.electron.ipcRenderer.send('res:status', { nametag: v.nametag, provider: v.provider })
-      }, 600 * i);
+          window.electron.ipcRenderer.send('rec:live:status', {
+            nametag: v.nametag,
+            type: 'checkRec',
+            provider: v.provider,
+            status: v.status
+          })
+          window.electron.ipcRenderer.send('res:status', {
+            nametag: v.nametag,
+            provider: v.provider
+          })
+        }, 600 * i)
       })
     }
   }, 1000 * 50)
@@ -119,11 +128,44 @@
     )
     locallistrec[selectedIndex].status = args.data.status
     locallistrec[selectedIndex].thumb = args.data.thumb
+
+    if (
+      (locallistrec[selectedIndex].status == 'private' ||
+        locallistrec[selectedIndex].status == 'offline') &&
+      args.data.status == 'online'
+    ) {
+      window.electron.ipcRenderer.send('rec:recovery', {
+        name: n.nametag,
+        provider: n.provider
+      })
+    }
+  })
+
+  window.electron.ipcRenderer.on('rec:recovery', (event, args) => {
+    let selectedIndex = locallistrec.findIndex((n) =>
+      n.nametag == args.data.nametag && n.provider == args.provider ? n : null
+    )
+
+    if (!locallistrec[selectedIndex].url && !locallistrec[selectedIndex].recUrl) {
+      args.data.provider = args.provider
+      locallistrec[selectedIndex] = args.data
+
+      $listrec = locallistrec
+    }
   })
 
   const unsub = listrec.subscribe((v) => {
     locallistrec = v
-    console.log('Update list')
+    console.log('Update:list')
+  })
+
+  const unsublocalview = localview.subscribe((v) => {
+    localurl = v
+    console.log('Update:view')
+  })
+  const unsublocalnametag = localname.subscribe((v) => {
+    localnametag = v
+    console.log('Update:nametag')
   })
 
   const SelectSaveFolder = () =>
@@ -138,6 +180,8 @@
   }
 
   onDestroy(unsub)
+  onDestroy(unsublocalnametag)
+  onDestroy(unsublocalview)
 </script>
 
 <main>

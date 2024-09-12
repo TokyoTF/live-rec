@@ -1,10 +1,16 @@
 <script>
-  import { listrec } from '../lib/store'
+  import { listrec, localview, localname } from '../lib/store'
   import { PlayIcon, XIcon } from 'lucide-svelte'
 
   export let status, thumb, nametag, provider, statusRec, recUrl, resolutions
   const RecAdd = (provider, nametag) => {
-    window.electron.ipcRenderer.send('rec:add', { name: nametag, provider: provider })
+    let selectedIndex = $listrec.findIndex((n) =>
+      n.nametag == nametag && n.provider == provider ? n : null
+    )
+    if ($localname !== $listrec[selectedIndex].nametag) {
+      $localview = $listrec[selectedIndex].url
+      $localname = nametag
+    }
   }
   let localRecUrl = ''
   const RecStatus = (type) => {
@@ -45,7 +51,7 @@
             <input type="button" id="rec" class="recPlay" />
             <!-- svelte-ignore a11y-no-static-element-interactions -->
             <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <div on:click={() => RecAdd(provider, nametag)}><PlayIcon size={30} /></div>
+            <div on:click={() => RecAdd(provider, nametag)}><PlayIcon size={35} fill={"white"} /></div>
           </label>
         </div>
       {/if}
@@ -58,7 +64,6 @@
   </div>
   <div class="warp warp-column itemcam-recording">
     {#if status == 'online' && resolutions}
-    
       <select class="itemcam-resolutions" bind:value={localRecUrl}>
         <option value="" disabled selected
           >default/{resolutions[0].resolution.width + 'x' + resolutions[0].resolution.height}
@@ -66,10 +71,10 @@
             {resolutions[0].fps}fps
           {/if}</option
         >
-
         {#each resolutions as res}
           <option value={res.url}
-            >{res.resolution.width + 'x' + res.resolution.height} {#if res.fps}{res.fps}fps{/if}</option
+            >{res.resolution.width + 'x' + res.resolution.height}
+            {#if res.fps}{res.fps}fps{/if}</option
           >
         {/each}
       </select>

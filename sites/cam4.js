@@ -36,7 +36,14 @@ export async function Cam4(nametag) {
           : 'not exist'
 
   const Response_streaminfo = await fetch(
-    'https://cam4.com/rest/v1.0/profile/' + nametag + '/streamInfo'
+    'https://cam4.com/rest/v1.0/profile/' + nametag + '/streamInfo',
+    {
+      headers: {
+        Referer: 'https://cam4.com/' + nametag,
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36'
+      }
+    }
   )
 
   if (Response_streaminfo.status == 200) {

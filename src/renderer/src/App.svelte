@@ -3,7 +3,7 @@
   import { PlusIcon } from 'lucide-svelte'
   import ItemCam from './components/itemCam.svelte'
   import { onDestroy } from 'svelte'
-
+ 
   import 'vidstack/player/styles/base.css'
   import 'vidstack/player/styles/plyr/theme.css'
 
@@ -18,6 +18,8 @@
   let localrequirefolder = ''
   let localdateformat = 'model-site-dd-MM-yyyy_hh-mm-ss'
   let loadconfig = false
+  let localorderbystatus = false
+ 
 
   window.electron.ipcRenderer.send('Load:config')
 
@@ -32,7 +34,8 @@
     localrequireffmpeg = args.ffmpegselect
     localrequirefolder = args.savefolder
     localdateformat = args.dateformat
-    console.log(args)
+    localorderbystatus = args.orderby == 'status' ? true : false
+    //localorderbystatus = args.orderby == 'status' ? 1 : 0
     if (!args.reclist.length) {
       loadconfig = true
     } else {
@@ -78,21 +81,44 @@
     }
   }
 
+  const changeStatusBy = (event) => {
+    console.log('change order by', localorderbystatus)
+    if (event) {
+      localorderbystatus = !localorderbystatus
+      setTimeout(() => (event.target.checked = localorderbystatus), 0)
+    }
+
+    $listrec = localorderbystatus
+      ? locallistrec.sort(
+          (a, b) =>
+            'onlineprivateoffline'.indexOf(String(a.status)) -
+            'onlineprivateoffline'.indexOf(String(b.status))
+        )
+      : locallistrec.sort(
+          (a, b) =>
+            'onlineprivateoffline'.indexOf(String(b.status)) -
+            'onlineprivateoffline'.indexOf(String(a.status))
+        )
+  }
+
   window.electron.ipcRenderer.on('rec:add', (event, args) => {
     let selectedIndex = locallistrec.findIndex((n) =>
       n.nametag == args.data.nametag && n.provider == args.provider ? n : null
     )
 
+    $listrec = locallistrec
+
     if (!locallistrec[selectedIndex].url && !locallistrec[selectedIndex].recUrl) {
       args.data.provider = args.provider
       locallistrec[selectedIndex] = args.data
-
-      $listrec = locallistrec //.sort((a,b) => String(b.status).localeCompare(String(a.status)))
+      localorderbystatus ? changeStatusBy() : ''
     }
-    if (locallistrec[selectedIndex].url && loadconfig && args.data.status == 'online') {
-      $localview = args.data.url
-      $localname = args.data.nametag
-    }
+    setTimeout(() => {
+      if (locallistrec[selectedIndex].url && loadconfig && args.data.status == 'online') {
+        $localview = args.data.url
+        $localname = args.data.nametag
+      }
+    }, 1100)
   })
 
   window.electron.ipcRenderer.on('Select:Folder', (event, args) => {
@@ -104,6 +130,7 @@
     let selectedIndex = locallistrec.findIndex((n) =>
       n.nametag == args.nametag && n.provider == args.provider ? n : null
     )
+
     locallistrec[selectedIndex].statusRec = args.status
   })
 
@@ -143,19 +170,17 @@
         provider: n.provider
       })
     }
+    localorderbystatus ? changeStatusBy() : ''
   })
 
   window.electron.ipcRenderer.on('rec:recovery', (event, args) => {
     let selectedIndex = locallistrec.findIndex((n) =>
       n.nametag == args.data.nametag && n.provider == args.provider ? n : null
     )
-
-    if (!locallistrec[selectedIndex].url && !locallistrec[selectedIndex].recUrl) {
-      args.data.provider = args.provider
-      locallistrec[selectedIndex] = args.data
-
-      $listrec = locallistrec
-    }
+    args.data.provider = args.provider
+    locallistrec[selectedIndex] = args.data
+    console.log('recovery:', args)
+    $listrec = locallistrec
   })
 
   const unsub = listrec.subscribe((v) => {
@@ -189,15 +214,10 @@
 </script>
 
 <main>
-  <input type="text" value={localrequirefolder} />
-  <input type="button" on:click={SelectSaveFolder} value="save folder" />
-  <input type="text" value={localrequireffmpeg} />
-  <input type="button" on:click={Selectffmpeg} value="ffmpeg select" />
-  <select name="suplist" bind:value={localdateformat} on:change={updatedate}>
-    <option value="model-site-dd-MM-yyyy_hh-mm-ss" selected>model-site-dd-MM-yyyy_hh-mm-ss</option>
-    <option value="model-site-yyyyMMdd-hhmmss">model-site-yyyyMMdd-hhmmss</option>
-    <option value="model-yyyyMMdd-hhmmss">model-yyyyMMdd-hhmmss</option>
-  </select>
+  <input type="text" value={localrequirefolder} class="global_input" />
+  <button class="global_input_button" on:click={SelectSaveFolder}>save folder</button>
+  <input type="text" value={localrequireffmpeg} class="global_input" />
+  <button class="global_input_button" on:click={Selectffmpeg}>ffmpeg select</button>
 
   <form on:submit|preventDefault={changePost} class="main-form">
     <select name="suplist">
@@ -210,6 +230,23 @@
     </select>
     <input type="text" placeholder="nametag" />
     <button type="submit"><PlusIcon color={'#8b8b8b'} size={20} /></button>
+    <select name="suplist" bind:value={localdateformat} on:change={updatedate}>
+      <option value="model-site-dd-MM-yyyy_hh-mm-ss" selected>model-site-dd-MM-yyyy_hh-mm-ss</option
+      >
+      <option value="model-site-yyyyMMdd-hhmmss">model-site-yyyyMMdd-hhmmss</option>
+      <option value="model-yyyyMMdd-hhmmss">model-yyyyMMdd-hhmmss</option>
+    </select>
+
+    <label for="label_check_orderby" class="label_checkbox">
+      <input
+        type="checkbox"
+        id="label_check_orderby"
+        on:click|preventDefault={changeStatusBy}
+        checked={localorderbystatus}
+      />
+
+      <div class="check_orderby">Order By Status</div>
+    </label>
   </form>
 
   <div class="warp justify-content-bet">
@@ -225,6 +262,7 @@
             provider={item.provider}
             status={item.status}
             resolutions={item.resolutions}
+            timeRec={item.timeFormat}
           />
         {/if}
       {/each}

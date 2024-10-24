@@ -53,6 +53,7 @@ export async function Dreamcam(nametag) {
     url: RawM3u8.url,
     recUrl: RawM3u8.url,
     statusRec: false,
+    timeRec:0,
     resolutions,
     thumb:
       status == 'online' || status == 'private'

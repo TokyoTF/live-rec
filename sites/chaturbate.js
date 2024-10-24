@@ -58,6 +58,7 @@ export async function Chaturbate(nametag) {
     url: Response.url,
     recUrl: Response.url,
     statusRec: false,
+    timeRec:0,
     resolutions,
     thumb:
       status == 'online' || status == 'private'

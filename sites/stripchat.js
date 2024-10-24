@@ -61,6 +61,7 @@ export async function Stripchat(nametag) {
     url: RawM3u8,
     recUrl: RawM3u8,
     statusRec: false,
+    timeRec: 0,
     resolutions,
     thumb:
       status == 'online' || status == 'private'

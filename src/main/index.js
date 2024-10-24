@@ -37,6 +37,7 @@ function createWindow() {
       autorec: false,
       autocreatefolder: false,
       autocreatefolderby: 'nametag',
+      orderby: 'status',
       dateformat: 'model-site-dd-MM-yyyy_hh-mm-ss',
       updatetime: 25,
       reclist: []

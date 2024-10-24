@@ -1,5 +1,5 @@
 
-# Live Rec v1.0.5 <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="40"/>
+# Live Rec v1.0.6 <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="40"/>
 
 With this application you can record livestream of +18 pages. 
 
@@ -21,9 +21,10 @@ Future features
 - [ ] Automatic Recording
 - [ ] Automatic create folder by (nametag or provider)
 - [ ] Bash command line
-- [ ] Recording time
-- [ ] Order by status
-- [ ] Update status manual (by or only current status)
+- [X] Recording time
+- [X] Order by status & Update status
+- [ ] Auto Detect Url
+- [ ] Notification
 - [ ] More format extension
 
 Support OS

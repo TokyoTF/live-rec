@@ -3,7 +3,8 @@
   import { PlusIcon } from 'lucide-svelte'
   import ItemCam from './components/itemCam.svelte'
   import { onDestroy } from 'svelte'
- 
+  import time from 'humanize-duration'
+
   import 'vidstack/player/styles/base.css'
   import 'vidstack/player/styles/plyr/theme.css'
 
@@ -19,7 +20,22 @@
   let localdateformat = 'model-site-dd-MM-yyyy_hh-mm-ss'
   let loadconfig = false
   let localorderbystatus = false
- 
+  let localautorec = true
+  let time_set = time.humanizer({
+    language: 'shortEn',
+    languages: {
+      shortEn: {
+        y: () => 'y',
+        mo: () => 'mo',
+        w: () => 'w',
+        d: () => 'd',
+        h: () => 'h',
+        m: () => 'm',
+        s: () => 's',
+        ms: () => 'ms'
+      }
+    }
+  })
 
   window.electron.ipcRenderer.send('Load:config')
 
@@ -35,7 +51,7 @@
     localrequirefolder = args.savefolder
     localdateformat = args.dateformat
     localorderbystatus = args.orderby == 'status' ? true : false
-    //localorderbystatus = args.orderby == 'status' ? 1 : 0
+    localautorec = args.autorec
     if (!args.reclist.length) {
       loadconfig = true
     } else {
@@ -91,13 +107,13 @@
     $listrec = localorderbystatus
       ? locallistrec.sort(
           (a, b) =>
-            'onlineprivateoffline'.indexOf(String(a.status)) -
-            'onlineprivateoffline'.indexOf(String(b.status))
+            'onlineprivateofflinenotexist'.indexOf(String(a.status)) -
+            'onlineprivateofflinenotexist'.indexOf(String(b.status))
         )
       : locallistrec.sort(
           (a, b) =>
-            'onlineprivateoffline'.indexOf(String(b.status)) -
-            'onlineprivateoffline'.indexOf(String(a.status))
+            'onlineprivateofflinenotexist'.indexOf(String(b.status)) -
+            'onlineprivateofflinenotexist'.indexOf(String(a.status))
         )
   }
 
@@ -112,7 +128,12 @@
       args.data.provider = args.provider
       locallistrec[selectedIndex] = args.data
       localorderbystatus ? changeStatusBy() : ''
+
+      if (args.data.url && args.data.recUrl && args.data.status == 'online' && localautorec) {
+        window.electron.ipcRenderer.send('rec:auto')
+      }
     }
+
     setTimeout(() => {
       if (locallistrec[selectedIndex].url && loadconfig && args.data.status == 'online') {
         $localview = args.data.url
@@ -132,10 +153,11 @@
     )
 
     locallistrec[selectedIndex].statusRec = args.status
+    locallistrec[selectedIndex].realtime = args.realtime
   })
 
   setInterval(() => {
-    if (locallistrec.length) {
+    if (locallistrec.length && loadconfig) {
       locallistrec.map((v, i) => {
         setTimeout(() => {
           window.electron.ipcRenderer.send('rec:live:status', {
@@ -152,6 +174,28 @@
       })
     }
   }, 1000 * 50)
+
+  setInterval(() => {
+    if (loadconfig) {
+      locallistrec.map((n) => {
+        if (n.status == 'online' && n.statusRec && n.realtime) {
+          n.timeRec = n.timeRec + 1000
+          n.timeFormat = time_set(n.timeRec - 1000, {
+            units: ['h', 'm', 's'],
+            serialComma: false
+          })
+        } else if (n.status == 'online' && n.statusRec && !n.realtime) {
+          window.electron.ipcRenderer.send('rec:live:status', {
+            nametag: n.nametag,
+            type: 'realtimeRec',
+            provider: n.provider,
+            status: n.status
+          })
+        }
+      })
+      $listrec = locallistrec
+    }
+  }, 1000)
 
   window.electron.ipcRenderer.on('res:status', (event, args) => {
     let selectedIndex = locallistrec.findIndex((n) =>
@@ -179,7 +223,9 @@
     )
     args.data.provider = args.provider
     locallistrec[selectedIndex] = args.data
-    console.log('recovery:', args)
+    if (args.data.status == 'online' && localautorec) {
+      window.electron.ipcRenderer.send('rec:auto')
+    }
     $listrec = locallistrec
   })
 
@@ -205,6 +251,18 @@
     window.electron.ipcRenderer.send('Modify:config', {
       name: 'dateformat',
       value: localdateformat
+    })
+  }
+
+  const updateAutoRec = (event) => {
+    console.log('AutoRec:', localautorec)
+    if (event) {
+      localautorec = !localautorec
+      setTimeout(() => (event.target.checked = localautorec), 0)
+    }
+    window.electron.ipcRenderer.send('Modify:config', {
+      name: 'autorec',
+      value: localautorec
     })
   }
 
@@ -246,6 +304,15 @@
       />
 
       <div class="check_orderby">Order By Status</div>
+    </label>
+    <label class="autorec">
+      <input
+        type="checkbox"
+        name="autorec"
+        on:change|preventDefault={updateAutoRec}
+        checked={localautorec}
+      />
+      <span>Auto Rec</span>
     </label>
   </form>
 

@@ -176,14 +176,15 @@
   }, 1000 * 50)
 
   setInterval(() => {
-    if (loadconfig) {
-      locallistrec.map((n) => {
+    if ($listrec.length && loadconfig) {
+      $listrec.map((n) => {
         if (n.status == 'online' && n.statusRec && n.realtime) {
           n.timeRec = n.timeRec + 1000
           n.timeFormat = time_set(n.timeRec - 1000, {
             units: ['h', 'm', 's'],
             serialComma: false
           })
+          listrec.update((n) => (locallistrec = n))
         } else if (n.status == 'online' && n.statusRec && !n.realtime) {
           window.electron.ipcRenderer.send('rec:live:status', {
             nametag: n.nametag,
@@ -193,7 +194,7 @@
           })
         }
       })
-      $listrec = locallistrec
+    
     }
   }, 1000)
 

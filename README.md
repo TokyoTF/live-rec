@@ -18,7 +18,7 @@ With this application you can record livestream of +18 pages.
 * cam4
 
 Future features
-- [ ] Auto Recording
+- [X] Auto Recording
 - [ ] Auto create folder by (nametag or provider)
 - [ ] Bash command line
 - [X] Recording time

@@ -375,6 +375,22 @@ label.label_checkbox input:checked ~ .check_orderby{
   border-radius: 5rem;
 }
 
+.autorec{
+  width: fit-content;
+  height: 35px;
+  color: #8b8b8b;
+  padding: 5px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap:10px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0px 0px 0px 2px #f14b6900;
+  background-color: #353535;
+  border-radius: 5rem;
+}
+
 
 @keyframes spinner-c7wet2 {
   100% {

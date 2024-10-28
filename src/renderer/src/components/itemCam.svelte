@@ -1,24 +1,9 @@
 <script>
   import { listrec, localview, localname } from '../lib/store'
   import { PlayIcon, XIcon } from 'lucide-svelte'
-  import time from 'humanize-duration'
 
   export let status, thumb, nametag, provider, statusRec, recUrl, resolutions, timeRec
-  let time_set = time.humanizer({
-    language: 'shortEn',
-    languages: {
-      shortEn: {
-        y: () => 'y',
-        mo: () => 'mo',
-        w: () => 'w',
-        d: () => 'd',
-        h: () => 'h',
-        m: () => 'm',
-        s: () => 's',
-        ms: () => 'ms'
-      }
-    }
-  })
+
   const RecAdd = (provider, nametag) => {
     let selectedIndex = $listrec.findIndex((n) =>
       n.nametag == nametag && n.provider == provider ? n : null
@@ -29,19 +14,12 @@
     }
   }
   let localRecUrl = ''
+
   const RecStatus = (type) => {
     let selectedIndex = $listrec.findIndex((n) =>
       n.nametag == nametag && n.provider == provider ? n : null
     )
-    if (type == 'startRec' && $listrec[selectedIndex].timeRec == 0) {
-      $listrec[selectedIndex].time_function = setInterval(() => {
-        $listrec[selectedIndex].timeRec = $listrec[selectedIndex].timeRec + 1
-        $listrec[selectedIndex].timeFormat = time_set($listrec[selectedIndex].timeRec * 1000, {
-          units: ['h', 'm', 's'],
-          serialComma: false
-        })
-      }, 1000)
-    } else if (type == 'stopRec') {
+    if (type == 'stopRec') {
       $listrec[selectedIndex].timeRec = 0
       clearInterval($listrec[selectedIndex].time_function)
       $listrec[selectedIndex].timeFormat = 0
@@ -56,6 +34,10 @@
       url: localRecUrl ? localRecUrl : recUrl
     })
   }
+
+  window.electron.ipcRenderer.on('rec:auto', () => {
+    RecStatus('startRec')
+  })
 
   const RemoveRec = (rawnametag, rawprovider) => {
     let newList = []

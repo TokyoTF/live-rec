@@ -1,6 +1,6 @@
 {
   "name": "live-rec",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "description": "application to record the livestream of a page like bongacams, camsoda, chaturbate, dreamcam.",
   "main": "./out/main/index.js",
   "author": "TokyoTF",
@@ -35,7 +35,7 @@
     "@electron-toolkit/eslint-config-prettier": "^2.0.0",
     "@sveltejs/vite-plugin-svelte": "^3.1.1",
     "electron": "^31.0.2",
-    "electron-builder": "^24.13.3",
+    "electron-builder": "^25.1.8",
     "electron-vite": "^2.3.0",
     "eslint": "^8.57.0",
     "eslint-plugin-svelte": "^2.41.0",

@@ -1,5 +1,5 @@
 
-# Live Rec v1.0.6 <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="40"/>
+# Live Rec v1.0.7 <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="40"/>
 
 With this application you can record livestream of +18 pages. 
 
@@ -18,7 +18,7 @@ With this application you can record livestream of +18 pages.
 * cam4
 
 Future features
-- [ ] Auto Recording
+- [X] Auto Recording
 - [ ] Auto create folder by (nametag or provider)
 - [ ] Bash command line
 - [X] Recording time

@@ -112,7 +112,16 @@ app.whenReady().then(() => {
       args.provider,
       dateformat
     )
-    event.reply('rec:live:status', { nametag: args.nametag, provider: args.provider, status: rec })
+    event.reply('rec:live:status', {
+      nametag: args.nametag,
+      provider: args.provider,
+      status: rec.recording,
+      realtime: rec.realtime
+    })
+  })
+
+  ipcMain.on('rec:auto', (event) => {
+    event.reply('rec:auto')
   })
 
   ipcMain.on('Load:config', (event) => {

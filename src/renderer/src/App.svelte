@@ -194,7 +194,6 @@
           })
         }
       })
-    
     }
   }, 1000)
 
@@ -202,19 +201,19 @@
     let selectedIndex = locallistrec.findIndex((n) =>
       n.nametag == args.nametag && n.provider == args.provider ? n : null
     )
-    locallistrec[selectedIndex].status = args.data.status
-    locallistrec[selectedIndex].thumb = args.data.thumb
-
     if (
       (locallistrec[selectedIndex].status == 'private' ||
         locallistrec[selectedIndex].status == 'offline') &&
       args.data.status == 'online'
     ) {
+
       window.electron.ipcRenderer.send('rec:recovery', {
         name: n.nametag,
         provider: n.provider
       })
     }
+    locallistrec[selectedIndex].status = args.data.status
+    locallistrec[selectedIndex].thumb = args.data.thumb
     localorderbystatus ? changeStatusBy() : ''
   })
 

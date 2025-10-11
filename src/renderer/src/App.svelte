@@ -191,8 +191,7 @@
     updateOrderBy()
 
     if (
-      !state.recLoading &&
-      state.listrec.length - 1 == state.recLoad &&
+      !state.recLoading && state.recLoad &&
       state.loadconfig &&
       args.data.status == 'online'
     ) {
@@ -288,6 +287,7 @@
         }
       })
     }
+    console.log(state.loadconfig,state.recLoading,state.recLoad)
   }, 1000)
 
   window.electron.ipcRenderer.on('rec:recovery', (event, args) => {

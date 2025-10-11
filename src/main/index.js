@@ -133,7 +133,13 @@ app.whenReady().then(() => {
   ipcMain.on('Modify:config', (event, args) => {
     if (args.name == 'dateformat') dateformat = args.value
 
-    tool.modifyjson({ raw: { name: args.name, value: args.value } })
+    if (args.name == 'raw') {
+      args.value.map((n) => {
+        tool.modifyjson({ raw: { name: n.name, value: n.value } })
+      })
+    } else {
+      tool.modifyjson({ raw: { name: args.name, value: args.value } })
+    }
   })
 
   ipcMain.on('Select:Folder', (event, args) => {

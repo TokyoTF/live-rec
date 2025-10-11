@@ -5,3 +5,4 @@ out
 *.log*
 .vscode
 electron.vite.config.1*.mjs
+bun.lock

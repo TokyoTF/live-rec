@@ -1,5 +1,5 @@
 <script>
-  import { listrec, localview, localname } from './lib/store'
+  import { listrec, localview } from './lib/store'
   import { PlusIcon } from 'lucide-svelte'
   import ItemCam from './components/itemCam.svelte'
   import { onDestroy } from 'svelte'
@@ -7,21 +7,27 @@
 
   import 'vidstack/player/styles/base.css'
   import 'vidstack/player/styles/plyr/theme.css'
-
   import 'vidstack/player'
   import 'vidstack/player/layouts/plyr'
   import 'vidstack/player/ui'
 
-  let localurl = ''
-  let localnametag = ''
-  let locallistrec = []
-  let localrequireffmpeg = ''
-  let localrequirefolder = ''
-  let localdateformat = 'model-site-dd-MM-yyyy_hh-mm-ss'
-  let loadconfig = false
-  let localorderbystatus = false
-  let localautorec = true
-  let time_set = time.humanizer({
+  const initialState = {
+    url: '',
+    nametag: '',
+    recLoad: 0,
+    recLoading: false,
+    listrec: [],
+    requireffmpeg: '',
+    requirefolder: '',
+    dateformat: 'model-site-dd-MM-yyyy_hh-mm-ss',
+    loadconfig: false,
+    orderbystatus: false,
+    autorec: true
+  }
+
+  let state = { ...initialState }
+
+  const timeFormatter = time.humanizer({
     language: 'shortEn',
     languages: {
       shortEn: {
@@ -37,128 +43,211 @@
     }
   })
 
-  window.electron.ipcRenderer.send('Load:config')
+  const initializeApp = () => {
+    window.electron.ipcRenderer.send('Load:config')
+  }
 
-  const RecAdd = (provider, nametag) => {
-    window.electron.ipcRenderer.send('rec:add', {
-      name: nametag,
-      provider: provider
-    })
+  const handleConfigLoad = (args) => {
+
+    state = {
+      ...state,
+      requireffmpeg: args.ffmpegselect,
+      requirefolder: args.savefolder,
+      dateformat: args.dateformat,
+      orderbystatus: args.orderby === 'status',
+      autorec: args.autorec
+    }
+
+    if (!args.reclist.length) {
+      state.loadconfig = true
+      return
+    }
+    state.listrec = []
+    listrec.update((n) => (state.listrec = n))
+    loadRecordingList(args.reclist)
   }
 
   window.electron.ipcRenderer.on('Load:config', (event, args) => {
-    localrequireffmpeg = args.ffmpegselect
-    localrequirefolder = args.savefolder
-    localdateformat = args.dateformat
-    localorderbystatus = args.orderby == 'status' ? true : false
-    localautorec = args.autorec
-    if (!args.reclist.length) {
-      loadconfig = true
-    } else {
-      setTimeout(() => {
-        args.reclist.map((n, i) => {
-          setTimeout(() => {
-            if (i + 1 !== args.reclist.length) {
-              locallistrec.push({ nametag: n.nametag, provider: n.provider })
-              window.electron.ipcRenderer.send('rec:add', {
-                name: n.nametag,
-                provider: n.provider
-              })
-            } else if (i + 1 == args.reclist.length) {
-              locallistrec.push({ nametag: n.nametag, provider: n.provider })
-              loadconfig = true
-              window.electron.ipcRenderer.send('rec:add', {
-                name: n.nametag,
-                provider: n.provider
-              })
-            }
-          }, 600 * i)
-        })
-      }, 1100)
-    }
+    handleConfigLoad(args)
   })
 
-  const changePost = (input) => {
-    let selProvider = input.target[0].options[input.target[0].selectedIndex].value
-    let NameTag = String(input.target[1].value)
-    let selectedIndex = locallistrec.findIndex((n) =>
-      n.nametag == NameTag && n.provider == selProvider ? n : null
-    )
-    //dvr = selProvider.includes('dreamcam') ? true : false
+  const loadRecordingList = (reclist) => {
+    const delay = 650
+    const initialDelay = 1100
 
-    if (!locallistrec[selectedIndex] && NameTag && selProvider) {
-      locallistrec.push({ nametag: NameTag, provider: selProvider })
-      listrec.update((n) => (locallistrec = n))
-      window.electron.ipcRenderer.send('Modify:config', {
-        name: 'reclist',
-        value: { nametag: NameTag, provider: selProvider }
+    setTimeout(() => {
+      reclist.forEach((item, index) => {
+        setTimeout(() => {
+          addRecordingItem(item, index === reclist.length - 1)
+        }, delay * index)
       })
-      RecAdd(selProvider, NameTag)
-    }
+    }, initialDelay)
   }
 
-  const changeStatusBy = (event) => {
-    console.log('change order by', localorderbystatus)
-    if (event) {
-      localorderbystatus = !localorderbystatus
-      setTimeout(() => (event.target.checked = localorderbystatus), 0)
+  const addRecordingItem = (item, isLast) => {
+    state.listrec.push({
+      nametag: item.nametag,
+      provider: item.provider
+    })
+
+    if (isLast) {
+      state.loadconfig = true
     }
 
-    $listrec = localorderbystatus
-      ? locallistrec.sort(
-          (a, b) =>
-            'onlineprivateofflinenotexist'.indexOf(String(a.status)) -
-            'onlineprivateofflinenotexist'.indexOf(String(b.status))
-        )
-      : locallistrec.sort(
-          (a, b) =>
-            'onlineprivateofflinenotexist'.indexOf(String(b.status)) -
-            'onlineprivateofflinenotexist'.indexOf(String(a.status))
-        )
+    window.electron.ipcRenderer.send('rec:add', {
+      name: item.nametag,
+      provider: item.provider
+    })
+  }
+
+  const handleFormSubmit = (event) => {
+    const form = event.target
+    const provider = form[0].options[form[0].selectedIndex].value
+    const nametag = String(form[1].value)
+
+    if (!isValidSubmission(provider, nametag)) return
+
+    addNewRecording(provider, nametag)
+  }
+
+  // on change form any option or checkbox save modify:config
+  const handleFormChange = (event) => {
+    const form = event.target.form
+    const dateformat = form[3].options[form[3].selectedIndex].value
+    const orderby = form[4].checked ? 'status' : 'none'
+    const autorec = form[5].checked
+
+    window.electron.ipcRenderer.send('Modify:config', {
+      name: 'raw',
+      value: [
+        { name: 'autorec', value: autorec },
+        { name: 'orderby', value: orderby },
+        { name: 'dateformat', value: dateformat }
+      ]
+    })
+  }
+
+  const isValidSubmission = (provider, nametag) => {
+    const exists = state.listrec.find(
+      (item) => item.nametag === nametag && item.provider === provider
+    )
+    return !exists && nametag && provider
+  }
+
+  const addNewRecording = (provider, nametag) => {
+    const newItem = { nametag, provider }
+    state.listrec.push(newItem)
+    listrec.update((n) => (state.listrec = n))
+
+    window.electron.ipcRenderer.send('Modify:config', {
+      name: 'reclist',
+      value: newItem
+    })
+
+    window.electron.ipcRenderer.send('rec:add', {
+      name: nametag,
+      provider
+    })
+  }
+
+  const updateOrderBy = (event) => {
+    if (event) {
+      state.orderbystatus = !state.orderbystatus
+      setTimeout(() => (event.target.checked = state.orderbystatus), 0)
+    }
+
+    $listrec = sortRecordingList(state.listrec, state.orderbystatus)
+  }
+
+  const sortRecordingList = (list, ascending) => {
+    const statusOrder = 'onlineprivateofflinenotexist'
+    return list.sort((a, b) => {
+      const comparison =
+        statusOrder.indexOf(String(a.status)) - statusOrder.indexOf(String(b.status))
+      return ascending ? comparison : -comparison
+    })
   }
 
   window.electron.ipcRenderer.on('rec:add', (event, args) => {
-    let selectedIndex = locallistrec.findIndex((n) =>
-      n.nametag == args.data.nametag && n.provider == args.provider ? n : null
+    const index = state.listrec.findIndex(
+      (item) => item.nametag === args.data.nametag && item.provider === args.provider
     )
 
-    $listrec = locallistrec
-
-    if (!locallistrec[selectedIndex].url && !locallistrec[selectedIndex].recUrl) {
-      args.data.provider = args.provider
-      locallistrec[selectedIndex] = args.data
-      localorderbystatus ? changeStatusBy() : ''
-
-      if (args.data.url && args.data.recUrl && args.data.status == 'online' && localautorec) {
-        window.electron.ipcRenderer.send('rec:auto')
+    if (index !== -1) {
+      state.listrec[index] = {
+        ...state.listrec[index],
+        statusRec: args.data.statusRec,
+        recUrl: args.data.recUrl,
+        url: args.data.url,
+        thumb: args.data.thumb,
+        timeRec: args.data.timeRec ? args.data.timeRec : 0,
+        status: args.data.status,
+        resolutions: args.data.resolutions,
+        timeFormat: args.data.timeRec ? timeFormatter(args.data.timeRec, { largest: 2 }) : '0 s'
       }
     }
 
-    setTimeout(() => {
-      if (locallistrec[selectedIndex].url && loadconfig && args.data.status == 'online') {
-        $localview = args.data.url
-        $localname = args.data.nametag
-      }
-    }, 1100)
-  })
+    listrec.update((n) => (state.listrec = n))
+    updateOrderBy()
 
-  window.electron.ipcRenderer.on('Select:Folder', (event, args) => {
-    if (args.ffmpeg) localrequireffmpeg = args.ffmpeg
-    if (args.svfolder) localrequirefolder = args.svfolder
+    if (
+      !state.recLoading &&
+      state.listrec.length - 1 == state.recLoad &&
+      state.loadconfig &&
+      args.data.status == 'online'
+    ) {
+      state.recLoading = true
+      localview.set({ recUrl: args.data.recUrl, nametag: args.data.nametag })
+    }
+    !state.recLoading && state.recLoad++
   })
 
   window.electron.ipcRenderer.on('rec:live:status', (event, args) => {
-    let selectedIndex = locallistrec.findIndex((n) =>
-      n.nametag == args.nametag && n.provider == args.provider ? n : null
+    const index = state.listrec.findIndex(
+      (item) => item.nametag === args.nametag && item.provider === args.provider
     )
 
-    locallistrec[selectedIndex].statusRec = args.status
-    locallistrec[selectedIndex].realtime = args.realtime
+    if (index !== -1) {
+      state.listrec[index] = {
+        ...state.listrec[index],
+        statusRec: args.status,
+        realtime: args.realtime
+      }
+    }
+  })
+
+  window.electron.ipcRenderer.on('res:status', (event, args) => {
+    const index = state.listrec.findIndex(
+      (item) => item.nametag === args.nametag && item.provider === args.provider
+    )
+
+    state.listrec[index].status = args.data.status
+    state.listrec[index].thumb = args.data.thumb
+
+    if (index !== -1) {
+      state.listrec[index] = {
+        ...state.listrec[index],
+        thumb: args.data.thumb,
+        status: args.data.status
+      }
+    }
+
+    if (
+      (state.listrec[index].status == 'private' || state.listrec[index].status == 'offline') &&
+      args.data.status == 'online'
+    ) {
+      window.electron.ipcRenderer.send('rec:recovery', {
+        name: n.nametag,
+        provider: n.provider
+      })
+    }
+
+    updateOrderBy()
   })
 
   setInterval(() => {
-    if (locallistrec.length && loadconfig) {
-      locallistrec.map((v, i) => {
+    if (state.listrec.length && state.loadconfig && state.recLoading) {
+      state.listrec.map((v, i) => {
         setTimeout(() => {
           window.electron.ipcRenderer.send('rec:live:status', {
             nametag: v.nametag,
@@ -176,15 +265,19 @@
   }, 1000 * 50)
 
   setInterval(() => {
-    if ($listrec.length && loadconfig) {
-      $listrec.map((n) => {
+    if (state.loadconfig && state.recLoading) {
+      state.listrec.map((n) => {
         if (n.status == 'online' && n.statusRec && n.realtime) {
-          n.timeRec = n.timeRec + 1000
-          n.timeFormat = time_set(n.timeRec - 1000, {
-            units: ['h', 'm', 's'],
-            serialComma: false
-          })
-          listrec.update((n) => (locallistrec = n))
+          const index = state.listrec.findIndex(
+            (item) => item.nametag === n.nametag && item.provider === n.provider
+          )
+          state.listrec[index] = {
+            ...state.listrec[index],
+            timeRec: n.timeRec + 1000,
+            timeFormat: timeFormatter(n.timeRec, { largest: 2 })
+          }
+
+          listrec.update((n) => (state.listrec = n))
         } else if (n.status == 'online' && n.statusRec && !n.realtime) {
           window.electron.ipcRenderer.send('rec:live:status', {
             nametag: n.nametag,
@@ -197,87 +290,73 @@
     }
   }, 1000)
 
-  window.electron.ipcRenderer.on('res:status', (event, args) => {
-    let selectedIndex = locallistrec.findIndex((n) =>
-      n.nametag == args.nametag && n.provider == args.provider ? n : null
-    )
-    if (
-      (locallistrec[selectedIndex].status == 'private' ||
-        locallistrec[selectedIndex].status == 'offline') &&
-      args.data.status == 'online'
-    ) {
-
-      window.electron.ipcRenderer.send('rec:recovery', {
-        name: n.nametag,
-        provider: n.provider
-      })
-    }
-    locallistrec[selectedIndex].status = args.data.status
-    locallistrec[selectedIndex].thumb = args.data.thumb
-    localorderbystatus ? changeStatusBy() : ''
-  })
-
   window.electron.ipcRenderer.on('rec:recovery', (event, args) => {
-    let selectedIndex = locallistrec.findIndex((n) =>
-      n.nametag == args.data.nametag && n.provider == args.provider ? n : null
+    const index = state.listrec.findIndex(
+      (item) => item.nametag === args.data.nametag && item.provider === args.provider
     )
+
     args.data.provider = args.provider
-    locallistrec[selectedIndex] = args.data
-    if (args.data.status == 'online' && localautorec) {
+    state.listrec[index] = {
+      ...state.listrec[index],
+      nametag: args.data.nametag,
+      status: args.data.status,
+      url: args.data.url,
+      recUrl: args.data.recUrl,
+      statusRec: args.data.statusRec,
+      timeRec: args.data.timeRec,
+      resolutions: args.data.resolutions,
+      thumb: args.data.thumb
+    }
+
+    if (args.data.status == 'online' && state.listrec) {
       window.electron.ipcRenderer.send('rec:auto')
     }
-    $listrec = locallistrec
+    listrec.update((n) => (state.listrec = n))
+    updateOrderBy()
   })
 
-  const unsub = listrec.subscribe((v) => {
-    locallistrec = v
-    console.log('Update:list')
+  window.electron.ipcRenderer.on('Select:Folder', (event, args) => {
+    if (args.ffmpeg) state.requireffmpeg = args.ffmpeg
+    if (args.svfolder) state.requirefolder = args.svfolder
   })
 
-  const unsublocalview = localview.subscribe((v) => {
-    localurl = v
-    console.log('Update:view')
-  })
-  const unsublocalnametag = localname.subscribe((v) => {
-    localnametag = v
-    console.log('Update:nametag')
-  })
-
-  const SelectSaveFolder = () =>
-    window.electron.ipcRenderer.send('Select:Folder', { type: 'folder' })
-  const Selectffmpeg = () => window.electron.ipcRenderer.send('Select:Folder', { type: 'file' })
-
-  const updatedate = () => {
-    window.electron.ipcRenderer.send('Modify:config', {
-      name: 'dateformat',
-      value: localdateformat
+  const subscriptions = [
+    listrec.subscribe((newreclist) => {
+      state.listrec = newreclist
+    }),
+    localview.subscribe(({ recUrl, nametag }) => {
+      state.url = recUrl
+      state.nametag = nametag
     })
-  }
+  ]
 
-  const updateAutoRec = (event) => {
-    console.log('AutoRec:', localautorec)
-    if (event) {
-      localautorec = !localautorec
-      setTimeout(() => (event.target.checked = localautorec), 0)
-    }
-    window.electron.ipcRenderer.send('Modify:config', {
-      name: 'autorec',
-      value: localautorec
-    })
-  }
+  onDestroy(() => {
+    subscriptions.forEach((unsub) => unsub())
+  })
 
-  onDestroy(unsub)
-  onDestroy(unsublocalnametag)
-  onDestroy(unsublocalview)
+  initializeApp()
 </script>
 
 <main>
-  <input type="text" value={localrequirefolder} class="global_input" />
-  <button class="global_input_button" on:click={SelectSaveFolder}>save folder</button>
-  <input type="text" value={localrequireffmpeg} class="global_input" />
-  <button class="global_input_button" on:click={Selectffmpeg}>ffmpeg select</button>
+  <div class="config-section">
+    <input type="text" value={state.requirefolder} class="global_input" />
+    <button
+      class="global_input_button"
+      on:click={() => window.electron.ipcRenderer.send('Select:Folder', { type: 'folder' })}
+    >
+      save folder
+    </button>
 
-  <form on:submit|preventDefault={changePost} class="main-form">
+    <input type="text" value={state.requireffmpeg} class="global_input" />
+    <button
+      class="global_input_button"
+      on:click={() => window.electron.ipcRenderer.send('Select:Folder', { type: 'file' })}
+    >
+      ffmpeg select
+    </button>
+  </div>
+
+  <form on:submit|preventDefault={handleFormSubmit} on:change={handleFormChange} class="main-form">
     <select name="suplist">
       <option value="chaturbate" selected>chaturbate</option>
       <option value="stripchat">stripchat</option>
@@ -288,7 +367,7 @@
     </select>
     <input type="text" placeholder="nametag" />
     <button type="submit"><PlusIcon color={'#8b8b8b'} size={20} /></button>
-    <select name="suplist" bind:value={localdateformat} on:change={updatedate}>
+    <select name="suplist" bind:value={state.dateformat}>
       <option value="model-site-dd-MM-yyyy_hh-mm-ss" selected>model-site-dd-MM-yyyy_hh-mm-ss</option
       >
       <option value="model-site-yyyyMMdd-hhmmss">model-site-yyyyMMdd-hhmmss</option>
@@ -299,31 +378,25 @@
       <input
         type="checkbox"
         id="label_check_orderby"
-        on:click|preventDefault={changeStatusBy}
-        checked={localorderbystatus}
+        on:click={updateOrderBy}
+        checked={state.orderbystatus}
       />
 
       <div class="check_orderby">Order By Status</div>
     </label>
     <label class="autorec">
-      <input
-        type="checkbox"
-        name="autorec"
-        on:change|preventDefault={updateAutoRec}
-        checked={localautorec}
-      />
+      <input type="checkbox" name="autorec" checked={state.autorec} />
       <span>Auto Rec</span>
     </label>
   </form>
 
   <div class="warp justify-content-bet">
     <div class="warp warp-column scroll">
-      <div class={!loadconfig ? 'spinner' : ''}></div>
-      {#each locallistrec as item}
+      <div class={!state.loadconfig ? 'spinner' : ''}></div>
+      {#each state.listrec as item}
         {#if item.nametag}
           <ItemCam
             nametag={item.nametag}
-            recUrl={item.recUrl}
             statusRec={item.statusRec}
             thumb={item.thumb}
             provider={item.provider}
@@ -335,11 +408,11 @@
       {/each}
     </div>
     <div class="mini-player">
-      <span>{localnametag}</span>
+      <span>{state.nametag ? state.nametag : 'Loading'}</span>
       <media-player
         liveEdgeTolerance={0}
         volume={0.2}
-        src={localurl ? localurl : ''}
+        src={state.url ? state.url : ''}
         crossOrigin={true}
         streamType={'live'}
       >

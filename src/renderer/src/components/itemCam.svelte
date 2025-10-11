@@ -1,17 +1,16 @@
 <script>
-  import { listrec, localview, localname } from '../lib/store'
+  import { listrec, localview } from '../lib/store'
   import { PlayIcon, XIcon } from 'lucide-svelte'
 
-  export let status, thumb, nametag, provider, statusRec, recUrl, resolutions, timeRec
+  export let status, thumb, nametag, provider, statusRec, resolutions, timeRec
 
   const RecAdd = (provider, nametag) => {
+  
     let selectedIndex = $listrec.findIndex((n) =>
       n.nametag == nametag && n.provider == provider ? n : null
     )
-    if ($localname !== $listrec[selectedIndex].nametag) {
-      $localview = $listrec[selectedIndex].url
-      $localname = nametag
-    }
+
+    if($listrec[selectedIndex].nametag !== $localview.nametag) $localview = {recUrl: $listrec[selectedIndex].url,nametag}
   }
   let localRecUrl = ''
 
@@ -31,7 +30,7 @@
       nametag,
       type,
       provider,
-      url: localRecUrl ? localRecUrl : recUrl
+      url: localRecUrl ? localRecUrl : resolutions[0].url
     })
   }
 
@@ -59,7 +58,7 @@
       <!-- svelte-ignore a11y-click-events-have-key-events -->
       <!-- svelte-ignore a11y-no-static-element-interactions -->
       <div class="itemcam-remove" on:click={() => RemoveRec(nametag, provider)}>
-        <XIcon size={18} />
+        <XIcon size={17} />
       </div>
       {#if status == 'online'}
         <div class="itemcam-play">

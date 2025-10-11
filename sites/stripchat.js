@@ -35,7 +35,7 @@ export async function Stripchat(nametag) {
           ? 'offline'
           : 'not exist'
 
-  const RawM3u8 = `https://edge-hls.doppiocdn.live/hls/${Response.streamName}/master/${Response.streamName}_auto.m3u8`
+  const RawM3u8 = `https://edge-hls.doppiocdn.com/hls/${Response.streamName}/master/${Response.streamName}_auto.m3u8`
 
   if (status == 'online' && RawM3u8) {
     Getresolutions = await fetch(RawM3u8, {
@@ -65,8 +65,8 @@ export async function Stripchat(nametag) {
     resolutions,
     thumb:
       status == 'online' || status == 'private'
-        ? 'https://img.strpst.com/thumbs/' +
-          (new Date().getTime().toString().slice(0, -3) - 40) +
+        ? 'https://img.doppiocdn.com/thumbs/' +
+          (new Date().getTime().toString().slice(0, -3) - 140) +
           '/' +
           Response.model.id +
           '_webp'
@@ -93,11 +93,10 @@ export async function StripchatUpdate(nametag) {
     status,
     thumb:
       status == 'online' || status == 'private'
-        ? 'https://img.strpst.com/thumbs/' +
-          (new Date().getTime().toString().slice(0, -3) - 40) +
+        ? 'https://img.doppiocdn.com/thumbs/' +
+          (new Date().getTime().toString().slice(0, -3) - 140) +
           '/' +
-          res.model.id +
-          '_webp'
+          res.model.id
         : ''
   }
 }

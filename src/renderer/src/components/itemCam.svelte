@@ -2,7 +2,15 @@
   import { listrec, localview } from '../lib/store'
   import { PlayIcon, XIcon } from 'lucide-svelte'
 
-  export let status, thumb, nametag, provider, statusRec, resolutions, timeRec
+  let {
+    status,
+    thumb,
+    nametag,
+    provider,
+    statusRec,
+    resolutions,
+    timeRec
+  } = $props();
 
   const RecAdd = (provider, nametag) => {
   
@@ -12,7 +20,7 @@
 
     if($listrec[selectedIndex].nametag !== $localview.nametag) $localview = {recUrl: $listrec[selectedIndex].url,nametag}
   }
-  let localRecUrl = ''
+  let localRecUrl = $state('')
 
   const RecStatus = (type) => {
     let selectedIndex = $listrec.findIndex((n) =>
@@ -55,18 +63,18 @@
       <div class="itemcam-status" currentstatus={status ? status : 'loading'}>
         <span>{status ? status : 'Loading'}</span>
       </div>
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
-      <div class="itemcam-remove" on:click={() => RemoveRec(nametag, provider)}>
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
+      <div class="itemcam-remove" onclick={() => RemoveRec(nametag, provider)}>
         <XIcon size={17} />
       </div>
       {#if status == 'online'}
         <div class="itemcam-play">
           <label for="rec">
             <input type="button" id="rec" class="recPlay" />
-            <!-- svelte-ignore a11y-no-static-element-interactions -->
-            <!-- svelte-ignore a11y-click-events-have-key-events -->
-            <div on:click={() => RecAdd(provider, nametag)}>
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <div onclick={() => RecAdd(provider, nametag)}>
               <PlayIcon size={35} fill={'white'} />
             </div>
           </label>
@@ -100,7 +108,7 @@
           type="button"
           name="rec"
           curretState={!statusRec ? 'startRec' : 'stopRec'}
-          on:click={() => RecStatus(!statusRec ? 'startRec' : 'stopRec')}
+          onclick={() => RecStatus(!statusRec ? 'startRec' : 'stopRec')}
           value={!statusRec ? 'Start REC' : 'Stop REC'}
         />
         {#if statusRec}

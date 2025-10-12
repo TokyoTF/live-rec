@@ -14,7 +14,6 @@
   const initialState = {
     url: '',
     nametag: '',
-    recLoad: 0,
     recLoading: false,
     listrec: [],
     requireffmpeg: '',
@@ -110,7 +109,6 @@
     addNewRecording(provider, nametag)
   }
 
-  // on change form any option or checkbox save modify:config
   const handleFormChange = (event) => {
     const form = event.target.form
     const dateformat = form[3].options[form[3].selectedIndex].value
@@ -191,14 +189,12 @@
     updateOrderBy()
 
     if (
-      !state.recLoading && state.recLoad &&
-      state.loadconfig &&
+      !state.recLoading &&
       args.data.status == 'online'
     ) {
       state.recLoading = true
       localview.set({ recUrl: args.data.recUrl, nametag: args.data.nametag })
     }
-    !state.recLoading && state.recLoad++
   })
 
   window.electron.ipcRenderer.on('rec:live:status', (event, args) => {
@@ -264,7 +260,7 @@
   }, 1000 * 50)
 
   setInterval(() => {
-    if (state.loadconfig && state.recLoading) {
+    if (state.loadconfig) {
       state.listrec.map((n) => {
         if (n.status == 'online' && n.statusRec && n.realtime) {
           const index = state.listrec.findIndex(
@@ -276,8 +272,8 @@
             timeFormat: timeFormatter(n.timeRec, { largest: 2 })
           }
 
-          listrec.update((n) => (state.listrec = n))
-        } else if (n.status == 'online' && n.statusRec && !n.realtime) {
+          listrec.update((s) => (state.listrec = s))
+        } else if (n.status == 'online' && !n.statusRec && !n.realtime) {
           window.electron.ipcRenderer.send('rec:live:status', {
             nametag: n.nametag,
             type: 'realtimeRec',
@@ -287,7 +283,6 @@
         }
       })
     }
-    console.log(state.loadconfig,state.recLoading,state.recLoad)
   }, 1000)
 
   window.electron.ipcRenderer.on('rec:recovery', (event, args) => {

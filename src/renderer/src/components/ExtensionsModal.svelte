@@ -84,7 +84,7 @@
 {#if showModal}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="fixed inset-0 z-999 flex items-center justify-center bg-black/60 backdrop-blur-sm" onclick={close}>
+  <div class="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm" onclick={close}>
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div

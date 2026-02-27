@@ -16,14 +16,13 @@
   let unsubs = []
 
   onMount(() => {
-    // Get current version synchronously via IPC
     versionInUse = window.electron.ipcRenderer.sendSync('app:version')
 
     unsubs.push(on('updater:available', (_e, info) => {
       status = 'available'
       updateInfo = info
       notify(`Update ${info.version} available!`, 'success')
-      showModal = true // Show modal automatically if update is available
+      showModal = true
     }))
 
     unsubs.push(on('updater:not-available', () => {
@@ -45,7 +44,7 @@
     unsubs.push(on('updater:downloaded', (_e, info) => {
       status = 'downloaded'
       updateInfo = info
-      notify('Update downloaded and ready to install!', 'success', 0) // No auto-dismiss
+      notify('Update downloaded and ready to install!', 'success', 0)
     }))
   })
 
@@ -68,7 +67,6 @@
     send('updater:install')
   }
 
-  // Effect to handle opening the modal
   $effect(() => {
     if (showModal && status === 'idle') {
       checkUpdate()
@@ -79,7 +77,7 @@
 {#if showModal}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="fixed inset-0 z-100 flex items-center justify-center bg-black/60 backdrop-blur-sm" onclick={closeModal}>
+  <div class="fixed inset-0 z-999 flex items-center justify-center bg-black/60 backdrop-blur-sm" onclick={closeModal}>
     <div
       class="bg-surface-800 border border-white/10 rounded-2xl p-6 w-[400px] shadow-2xl shadow-black/40"
       onclick={(e) => e.stopPropagation()}

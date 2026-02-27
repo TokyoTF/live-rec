@@ -18,9 +18,9 @@ function formatTime(ms) {
   return ms ? timeFormatter(ms, { largest: 2 }) : '0 s'
 }
 
-// ══════════════════════════════════════════════════════════════════════════
+
 // 1. ROUTER STATE
-// ══════════════════════════════════════════════════════════════════════════
+
 export const isSettingsOpen = writable(false)
 
 export function openSettings() { isSettingsOpen.set(true) }
@@ -28,9 +28,9 @@ export function closeSettings() { isSettingsOpen.set(false) }
 export function toggleSettings() { isSettingsOpen.update(v => !v) }
 export function getIsSettingsOpen() { return get(isSettingsOpen) } // Compatibility
 
-// ══════════════════════════════════════════════════════════════════════════
+
 // 2. NOTIFICATIONS STATE
-// ══════════════════════════════════════════════════════════════════════════
+
 export const toasts = writable([])
 
 export function getToasts() { return get(toasts) }
@@ -51,9 +51,9 @@ export function dismiss(id) {
   toasts.update(t => t.filter(t => t.id !== id))
 }
 
-// ══════════════════════════════════════════════════════════════════════════
+
 // 3. CONFIG STATE
-// ══════════════════════════════════════════════════════════════════════════
+
 export const ffmpegPath = writable('')
 export const saveFolder = writable('')
 export const nasPath = writable('')
@@ -172,9 +172,9 @@ export function saveConfig() {
   })
 }
 
-// ══════════════════════════════════════════════════════════════════════════
+
 // 4. RECORDER STATE
-// ══════════════════════════════════════════════════════════════════════════
+
 export const recordings = writable([])
 export const isLoaded = writable(false)
 export const isInitialized = writable(false)
@@ -315,9 +315,9 @@ function findIndex(nametag, provider) {
   )
 }
 
-// ══════════════════════════════════════════════════════════════════════════
+
 // 5. CONSTANTS / DERIVED
-// ══════════════════════════════════════════════════════════════════════════
+
 export const PROVIDERS = derived(providers, $p => $p.map(p => ({ ...p, value: p.name })))
 export const DOMAIN_TO_PROVIDER = derived(PROVIDERS, $p => Object.fromEntries($p.map(p => [p.domain, p.name])))
 export const PROVIDER_COLORS = derived(PROVIDERS, $p => Object.fromEntries($p.map(p => [p.name, p.color])))
@@ -340,9 +340,9 @@ export const DATE_FORMATS = [
   { value: 'model-yyyyMMdd-hhmmss', label: 'model-yyyyMMdd-hhmmss' },
 ]
 
-// ══════════════════════════════════════════════════════════════════════════
+
 // INITIALIZATION & IPC LISTENERS
-// ══════════════════════════════════════════════════════════════════════════
+
 const unsubscribers = []
 
 export function init() {

@@ -1,6 +1,7 @@
 <script>
   import { XIcon, PuzzleIcon, RefreshCwIcon, DownloadIcon, CheckIcon, LoaderIcon } from 'lucide-svelte'
   import { send, on } from '@lib/ipc.js'
+  import { notify } from '@lib/store.js'
   import { onDestroy } from 'svelte'
   import { tooltip } from '@lib/tooltip.js'
 
@@ -21,6 +22,9 @@
   unsubs.push(on('extensions:check-updates', (_e, data) => {
     checking = false
     updates = data.updates || []
+    if (data.updates?.length > 0) {
+      notify(`${data.updates.length} extension updates found`, 'info')
+    }
   }))
 
   unsubs.push(on('extensions:update', (_e, data) => {
@@ -29,6 +33,9 @@
       extensions = data.extensions
       updates = updates.filter(u => u.name !== data.name)
       githubExtensions = githubExtensions.filter(g => g.name !== data.name)
+      notify(`${data.name} extension updated!`, 'success')
+    } else {
+      notify(`Failed to update ${data.name}: ${data.error}`, 'error')
     }
   }))
 

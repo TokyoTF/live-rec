@@ -21,24 +21,32 @@ const ListSites = {}
 const loadExtensions = async () => {
   const config = tool.loadjson()
   const useUserExtensions = !is.dev || config.devmode
-  
-  const targetDir = (useUserExtensions && existsSync(UserExtensionsDir)) 
-    ? UserExtensionsDir 
-    : sitesDir
 
-  Logger.info(`Loading extensions from: ${targetDir}`)
-  
-  if (!existsSync(targetDir)) {
-    if (targetDir === UserExtensionsDir) mkdirSync(UserExtensionsDir, { recursive: true })
-    else return
+
+  for (const key of Object.keys(ListSites)) delete ListSites[key]
+
+  const loadFromDir = async (dir, isUser = false) => {
+    if (!existsSync(dir)) return
+    const extensionFiles = readdirSync(dir).filter((f) => f.endsWith('Extension.js'))
+    for (const file of extensionFiles) {
+      try {
+        const filePath = path.join(dir, file)
+        const mod = await import(pathToFileURL(filePath).href + '?t=' + Date.now())
+        const instance = new mod.default(SiteExtra)
+        ListSites[instance.config.name] = instance
+        if (isUser) Logger.info(`Loaded user extension: ${instance.config.name}`)
+      } catch (err) {
+        Logger.error(`Error loading extension ${file} from ${dir}: ${err.message}`)
+      }
+    }
   }
 
-  const extensionFiles = readdirSync(targetDir).filter((f) => f.endsWith('Extension.js'))
-  for (const file of extensionFiles) {
-    const filePath = path.join(targetDir, file)
-    const mod = await import(pathToFileURL(filePath).href)
-    const instance = new mod.default(SiteExtra)
-    ListSites[instance.config.name] = instance
+  await loadFromDir(sitesDir)
+  if (useUserExtensions) {
+    if (!existsSync(UserExtensionsDir)) {
+      mkdirSync(UserExtensionsDir, { recursive: true })
+    }
+    await loadFromDir(UserExtensionsDir, true)
   }
 }
 
@@ -159,6 +167,8 @@ function createWindow() {
             icon: icon
           }).show()
         }
+      } else {
+        app.quit()
       }
     }
   })
@@ -673,11 +683,15 @@ app.whenReady().then(async () => {
       if (!response.ok) throw new Error('Failed to download extension')
 
       const code = await response.text()
-      const filePath = path.join(sitesDir, `${className}Extension.js`)
+      
+      const useUserExtensions = !is.dev || config.devmode
+      const targetDir = useUserExtensions ? UserExtensionsDir : sitesDir
+      
+      if (!existsSync(targetDir)) mkdirSync(targetDir, { recursive: true })
+
+      const filePath = path.join(targetDir, `${className}Extension.js`)
       writeFileSync(filePath, code)
 
-      // Reload all extensions
-      for (const key of Object.keys(ListSites)) delete ListSites[key]
       await loadExtensions()
       setupRequestRules()
 
@@ -687,6 +701,7 @@ app.whenReady().then(async () => {
       }))
       event.reply('extensions:update', { success: true, name: args.name, extensions })
     } catch (error) {
+      Logger.error(`Failed to update extension ${args.name}: ${error.message}`)
       event.reply('extensions:update', { success: false, name: args.name, error: error.message })
     }
   })
@@ -703,7 +718,6 @@ app.whenReady().then(async () => {
         writeFileSync(dest, readFileSync(src))
       }
       
-      // Reload
       for (const key of Object.keys(ListSites)) delete ListSites[key]
       await loadExtensions()
       setupRequestRules()

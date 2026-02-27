@@ -1,69 +1,75 @@
-> [!WARNING]  
-> This project is partially abandoned, due to lack of time.
+# Live Rec v1.0.8 🎥 <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="40" align="right"/>
 
-# Live Rec v1.0.8 <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="40"/>
+> A powerful, minimalist tool to record live streams from various platforms with ease.
 
-### 🎥 Record live streams from adult websites
+[![Electron][Electron]][Electron-url] [![Svelte][Svelte]][Svelte-url] [![Vite][Vite]][Vite-url]
 
-## 📋 Prerequisites
+> [!NOTE]
+> **FFmpeg**: You need ffmpeg. [Download here](https://github.com/BtbN/FFmpeg-Builds/releases).
 
-- [FFmpeg](https://github.com/BtbN/FFmpeg-Builds/releases) installed on your system
+> [!NOTE]
+> This application does not allow the recording of private shows.
 
-## 🌟 Main Features
+## 🌟 Key Features
 
-### Supported Sites
+- 🚀 **Automatic Recording**: Automatically start recording when your favorite models go online.
+- 🎯 **Mini Player**: Floating, draggable preview window with real-time recording stats (Bitrate, FPS, Codec).
+- 📂 **Smart Organization**: Automatic folder creation per model or provider (Customizable).
+- ⚙️ **Advanced Settings**:
+  - Custom FFmpeg parameters for power users.
+  - Periodic status checks with adjustable intervals.
+  - Max recording duration limits.
+  - System tray support for background operation.
+- 📊 **Recording Stats**: Track recording time, bitrate, and resolution in real-time.
+
+---
+
+## 🧩 Sites support
+
+| Site | Status |
+| :--- | :---: |
+| **Bongacams** | ✅ |
+| **Chaturbate** | ✅ |
+| **Dreamcam** | ❌ |
+| **Cam4** | ✅ |
+| **Stripchat** | ✅ |
+
+## 🧩 Platform support
+
 | Platform | Status |
-|------------|---------|
-| Bongacams | ✅ |
-| Camsoda | ❌ |
-| Chaturbate | ✅ |
-| Dreamcam | ✅ |
-| Stripchat | ❌ |
-| Cam4 | ✅ |
-
-### Operating Systems
-| OS | Support |
-|----|---------|
+| :--- | :---: |
 | Windows | ✅ |
 | Linux | 🚧 |
 | Mac | 🚧 |
 
-## 🛠️ Features
+---
 
-### Implemented
-- ✅ Automatic recording
-- ✅ Recording time
-- ✅ Sort by status and update
+## 🛠️ Prerequisites
 
-### Under Development
-- 🚧 Automatic folder creation (by user or provider)
-- 🚧 Command line interface
-- 🚧 Notifications
-- 🚧 More file extensions
+- **FFmpeg**: Must be installed on your system. [Download here](https://github.com/BtbN/FFmpeg-Builds/releases).
+- **Node.js / Bun**: For development and building.
 
-## ⚠️ Limitations
-- Private shows recording not supported
-- ¿Why is only MKV supported and not mp4? 
-`Because if a segment of MP4 files gets corrupted, it can corrupt the entire file or affect the overall playback, while in MKV files, if a segment gets corrupted, only that segment gets corrupted and you can watch the rest without any problem.`
+---
 
-## 💡 Troubleshooting
+## ❓ Why MKV?
 
-If you have issues with `config.json` location (documents/live-rec/config.json):
+> [!TIP]
+> We use **MKV** as the default format because it is more resilient. If a recording is interrupted or a segment gets corrupted, the rest of the file remains playable. In contrast, MP4 files often become completely unreadable if not finalized correctly.
 
-1. Backup your current `reclist`
-2. Delete the `config.json` file
-3. Let a new one generate
-4. Paste your backed up `reclist` into the new file
+---
 
-## 🔧 Technologies Used
+## 🔧 Troubleshooting
 
-[![Electron][Electron]][Electron-url] [![Svelte][Svelte]][Svelte-url] [![Vite][Vite]][Vite-url]
+If you encounter issues with `config.json` (located at `Documents/live-rec/config.json`):
 
+1. Backup your current `reclist`.
+2. Delete the `config.json` file.
+3. Restart the app to generate a fresh configuration.
+4. Restore your `reclist` into the new file.
 
-> Based on [Electron Vite](https://electron-vite.org/) template
+---
 
-## 🚧 Developer Note
-> We are working on optimizing the code, as currently everything is in App.svelte.
+> Built with ❤️ using [Electron Vite](https://electron-vite.org/) template.
 
 <!-- MARKDOWN LINKS & IMAGES -->
 [Electron]: https://img.shields.io/badge/Electron-47848F?style=for-the-badge&logo=electron&logoColor=white

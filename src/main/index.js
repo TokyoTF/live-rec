@@ -433,6 +433,10 @@ app.whenReady().then(async () => {
     if (window) window.close()
   })
 
+  ipcMain.on('window:reload', (event) => {
+    event.sender.reload()
+  })
+
   ipcMain.on('Load:config', (event) => {
     const load = tool.loadjson()
     dateformat = load.dateformat

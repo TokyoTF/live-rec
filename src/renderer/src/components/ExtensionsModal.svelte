@@ -34,6 +34,11 @@
       updates = updates.filter(u => u.name !== data.name)
       githubExtensions = githubExtensions.filter(g => g.name !== data.name)
       notify(`${data.name} extension updated!`, 'success')
+      
+      // Reload the app to apply changes
+      setTimeout(() => {
+        send('window:reload')
+      }, 1000)
     } else {
       notify(`Failed to update ${data.name}: ${data.error}`, 'error')
     }

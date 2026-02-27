@@ -28,7 +28,6 @@
     if (data.success && data.extensions) {
       extensions = data.extensions
       updates = updates.filter(u => u.name !== data.name)
-      // Remove from github list if it was a new install
       githubExtensions = githubExtensions.filter(g => g.name !== data.name)
     }
   }))
@@ -36,7 +35,7 @@
   unsubs.push(on('extensions:get-github-list', (_e, data) => {
     loadingGithub = false
     if (data.success) {
-      // Filter out extensions that are already installed
+
       githubExtensions = data.extensions.filter(g => 
         !extensions.some(e => e.name.toLowerCase() === g.name.toLowerCase())
       )

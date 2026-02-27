@@ -50,7 +50,6 @@
 
     notify(`Added ${nametag} successfully`, 'success')
 
-    // Reset
     input = ''
     groupName = ''
     error = ''

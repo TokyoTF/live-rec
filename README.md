@@ -46,7 +46,7 @@
 
 ## 🛠️ Prerequisites
 
-- **FFmpeg**: Must be installed on your system. [Download here](https://github.com/BtbN/FFmpeg-Builds/releases).
+- **FFmpeg**: You Need FFmpeg :O [Download here](https://github.com/BtbN/FFmpeg-Builds/releases).
 - **Node.js / Bun**: For development and building.
 
 ---

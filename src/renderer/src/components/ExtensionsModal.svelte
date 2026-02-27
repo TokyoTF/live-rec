@@ -1,6 +1,7 @@
 <script>
   import { XIcon, PuzzleIcon, RefreshCwIcon, DownloadIcon, CheckIcon, LoaderIcon } from 'lucide-svelte'
   import { send, on } from '@lib/ipc.js'
+  import { notify } from '@lib/store.js'
   import { onDestroy } from 'svelte'
   import { tooltip } from '@lib/tooltip.js'
 
@@ -21,6 +22,9 @@
   unsubs.push(on('extensions:check-updates', (_e, data) => {
     checking = false
     updates = data.updates || []
+    if (data.updates?.length > 0) {
+      notify(`${data.updates.length} extension updates found`, 'info')
+    }
   }))
 
   unsubs.push(on('extensions:update', (_e, data) => {
@@ -29,6 +33,14 @@
       extensions = data.extensions
       updates = updates.filter(u => u.name !== data.name)
       githubExtensions = githubExtensions.filter(g => g.name !== data.name)
+      notify(`${data.name} extension updated!`, 'success')
+      
+      // Reload the app to apply changes
+      setTimeout(() => {
+        send('window:reload')
+      }, 1000)
+    } else {
+      notify(`Failed to update ${data.name}: ${data.error}`, 'error')
     }
   }))
 
@@ -84,7 +96,7 @@
 {#if showModal}
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <!-- svelte-ignore a11y_no_static_element_interactions -->
-  <div class="fixed inset-0 z-9999 flex items-center justify-center bg-black/60 backdrop-blur-sm" onclick={close}>
+  <div class="fixed inset-0 z-999 flex items-center justify-center bg-black/60 backdrop-blur-sm" onclick={close}>
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div

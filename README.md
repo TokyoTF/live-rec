@@ -1,4 +1,4 @@
-# Live Rec v1.0.8 🎥 <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="40" align="right"/>
+# Live Rec v2.0.9 🎥 <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="40" align="right"/>
 
 > A powerful, minimalist tool to record live streams from various platforms with ease.
 
@@ -29,7 +29,7 @@
 | Site | Status |
 | :--- | :---: |
 | **Bongacams** | ✅ |
-| **Chaturbate** | ✅ |
+| **Chaturbate** | fixing |
 | **Dreamcam** | ❌ |
 | **Cam4** | ✅ |
 | **Stripchat** | ✅ |

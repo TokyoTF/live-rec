@@ -1,5 +1,6 @@
 <script>
   import { recordingHistory, getProviderColor, saveConfig } from '@lib/store.js'
+  import { invoke } from '@lib/ipc.js'
   import { Film, Clock, Trash2 } from 'lucide-svelte'
 
   function formatDate(ts) {
@@ -25,6 +26,7 @@
   function clearHistory() {
     recordingHistory.set([])
     saveConfig()
+    invoke('thumbnails:clear')
   }
 
   function getColor(provider) {

@@ -579,6 +579,20 @@ app.whenReady().then(async () => {
     }
   })
 
+  ipcMain.handle('thumbnails:clear', async () => {
+    try {
+      const tempDir = path.join(FolderMain, 'temp')
+      if (existsSync(tempDir)) {
+        const files = readdirSync(tempDir).filter(f => f.endsWith('.jpg'))
+        files.forEach(f => unlinkSync(path.join(tempDir, f)))
+      }
+      return true
+    } catch (e) {
+      Logger.error('thumbnails:clear error:', e.message)
+      return false
+    }
+  })
+
   ipcMain.on('Config:export', (event) => {
     try {
       const config = tool.loadjson()

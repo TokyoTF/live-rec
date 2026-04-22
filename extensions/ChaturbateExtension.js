@@ -23,7 +23,7 @@ export default class ChaturbateExtension {
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
       body
     })
-  
+
     return await res.json()
   }
 
@@ -57,10 +57,12 @@ export default class ChaturbateExtension {
 
     const url = res.url
     const resolutions =
-    status == this.status_types.ONLINE ? await this.extension.getResolutions(url, 'https://' + url.split('/')[2]) : []
+     await this.extension.getResolutions(url, !url.includes('playlist.m3u8') ? 'https://' + url.split('/')[2] : null)
+
     let finalUrl = url
-    if (status === this.status_types.ONLINE) {
+    if (!url.includes('playlist.m3u8')) {
       const freshRes = await this.requestApi(nametag)
+      console.log('fresh:',freshRes)
       if (freshRes && freshRes.success && freshRes.url) {
         finalUrl = freshRes.url
       }
@@ -80,7 +82,7 @@ export default class ChaturbateExtension {
     return this.extension.createUpdate({
       status,
       thumb,
-      url: res.url
+      url: !res.url.includes('playlist.m3u8') ? res.url : null
     })
   }
 }

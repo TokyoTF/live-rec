@@ -104,8 +104,8 @@ let trayWindow = null
 
 function createTrayWindow() {
   trayWindow = new BrowserWindow({
-    width: 200,
-    height: 240,
+    width: 210,
+    height: 250,
     show: false,
     frame: false,
     fullscreenable: false,
@@ -114,12 +114,11 @@ function createTrayWindow() {
     alwaysOnTop: true,
     skipTaskbar: true,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false
     }
   })
 
-  // Hide the window when it loses focus
   trayWindow.on('blur', () => {
     if (!trayWindow.webContents.isDevToolsOpened()) {
       trayWindow.hide()

@@ -518,12 +518,22 @@ export function init() {
             group: group
           }
 
-          if(currentView.nametag === args.nametag && currentView.url && (args.data.status === 'offline' || args.data.status === 'private')) {
-            setCurrentStream('','')
-          }
+        if(currentView.nametag === args.nametag && (args.data.status === 'offline' || args.data.status === 'private')) {
+          setCurrentStream('','')
+        }
+
+        if((args.data.status === 'offline' || args.data.status === 'private') && draft[idx].statusRec) {
+          downloadThumbnail(args.data.thumb).then(thumbPath => {
+            addToHistory({
+              nametag: args.data.nametag,
+              provider: args.data.provider,
+              duration: draft[idx].timeRec,
+              thumb: thumbPath || args.data.thumb
+            })
+          })
+        }
 
         if (args.data.status === 'online') {
-
           if (draft[idx].paused) {
             console.log(`Resuming recording for ${args.nametag} after private`)
             startRec(args.nametag, args.provider, pickUrl(args.data.resolutions) || pickUrl(draft[idx].resolutions))

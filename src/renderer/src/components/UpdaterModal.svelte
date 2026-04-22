@@ -79,7 +79,7 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div class="fixed inset-0 z-999 flex items-center justify-center bg-black/60 backdrop-blur-sm" onclick={closeModal}>
     <div
-      class="bg-surface-800 border border-white/10 rounded-2xl p-6 w-[400px] shadow-2xl shadow-black/40"
+      class="bg-surface-800 border border-white/10 rounded-2xl p-6 w-100 shadow-2xl shadow-black/40"
       onclick={(e) => e.stopPropagation()}
     >
       <!-- Header -->
@@ -145,7 +145,7 @@
             <!-- Progress bar background -->
             <div class="w-full h-2 bg-surface-900 rounded-full overflow-hidden">
               <!-- Progress bar fill -->
-              <div 
+              <div
                 class="h-full bg-blue-500 rounded-full transition-all duration-300 relative overflow-hidden"
                 style="width: {progress}%"
               >
@@ -159,7 +159,7 @@
             <CheckCircle2Icon size={40} class="text-green-500 mx-auto mb-2" />
             <p class="text-sm font-bold text-white/90">Update Ready to Install</p>
             <p class="text-xs text-white/50">The application will restart to apply the update.</p>
-            
+
             <button
               class="w-full py-2.5 rounded-xl bg-green-600 hover:bg-green-500 text-white text-sm font-medium transition-all cursor-pointer shadow-lg shadow-green-900/40 mt-2"
               onclick={installUpdate}

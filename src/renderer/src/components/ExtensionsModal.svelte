@@ -99,7 +99,7 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
-      class="bg-surface-800 border border-white/10 rounded-2xl p-5 w-[420px] shadow-2xl shadow-black/40"
+      class="bg-surface-800 border border-white/10 rounded-2xl p-5 w-105 shadow-2xl shadow-black/40"
       onclick={(e) => e.stopPropagation()}
     >
       <!-- Header -->

@@ -14,13 +14,16 @@
   }
 
   function formatDuration(ms) {
-    if (!ms) return '0:00'
+    if (!ms) return '0s'
     const sec = Math.floor(ms / 1000)
     const h = Math.floor(sec / 3600)
     const m = Math.floor((sec % 3600) / 60)
     const s = sec % 60
-    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
-    return `${m}:${s.toString().padStart(2, '0')}`
+    const parts = []
+    if (h > 0) parts.push(`${h}h`)
+    if (m > 0) parts.push(`${m}m`)
+    if (s > 0 || parts.length === 0) parts.push(`${s}s`)
+    return parts.join(' ')
   }
 
   function clearHistory() {
@@ -68,9 +71,9 @@
             </div>
             <div class="flex items-center gap-2 mt-1 text-[11px] text-white/50">
               <Clock size={12} />
-              <span>{formatDate(record.timestamp)}</span>
+              <span>End Time: {formatDate(record.timestamp)}</span>
               <span class="text-white/30">•</span>
-              <span>{formatDuration(record.duration)}</span>
+              <span>Recording Duration: {formatDuration(record.duration)}</span>
             </div>
           </div>
         </div>

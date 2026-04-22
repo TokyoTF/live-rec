@@ -13,7 +13,8 @@ export default class StripchatExtension {
         'https://*.doppiocdn.com/*',
         'https://*.sacdnssedge.com/*'
       ],
-      version: '1.0.0'
+      force_type:'application/x-mpegurl',
+      version: '1.0.1'
     }
     this.extension = new ExtensionExtra(this.config)
     this.status_types = this.extension.status_types
@@ -68,7 +69,7 @@ export default class StripchatExtension {
 
     const masterUrl = `https://edge-hls.doppiocdn.live/hls/${streamName}/master/${streamName}_auto.m3u8`
     const resData = await this.extension.getResolutions(masterUrl, '#', true)
-    
+
     let resolutions = [], blob, domain
 
     if (resData && resData.streamdata) {
@@ -98,8 +99,7 @@ export default class StripchatExtension {
       status,
       url: blob,
       resolutions,
-      thumb,
-      force_type:'video/x-mpegUrl'
+      thumb
     })
   }
 

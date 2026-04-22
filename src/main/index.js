@@ -1,5 +1,5 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, Tray, session, Notification, screen } from 'electron'
-import { autoUpdater } from 'electron-updater'
+import { app, shell, BrowserWindow, ipcMain, dialog, Tray, session, Notification, screen,protocol,net } from 'electron'
+import electronUpdater from 'electron-updater'
 import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
@@ -13,6 +13,8 @@ import Logger from '../../lib/logger.class.js'
 const FolderMain = path.resolve(process.env.USERPROFILE, 'Documents', 'live-rec')
 const UserExtensionsDir = path.join(FolderMain, 'extensions')
 const tool = new WarpClass()
+const autoUpdater = electronUpdater.autoUpdater
+const url = require('node:url')
 
 // Auto-discover and load site extensions
 const sitesDir = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')), '..', '..', 'extensions')
@@ -140,9 +142,14 @@ function createWindow() {
     frame: false,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false
     }
+  })
+
+  protocol.handle('liverec', (request) => {
+    const filePath = request.url.slice('liverec://'.length).split('/')[6]
+    return net.fetch(url.pathToFileURL(path.join(FolderMain,'temp', filePath)).toString())
   })
 
   mainWindow.on('ready-to-show', () => {
@@ -173,12 +180,13 @@ function createWindow() {
     }
   })
 
-
-  
-
-
   if (!existsSync(FolderMain)) {
     mkdirSync(FolderMain, { recursive: true })
+  }
+
+  const tempFolder = path.join(FolderMain, 'temp')
+  if (!existsSync(tempFolder)) {
+    mkdirSync(tempFolder, { recursive: true })
   }
 
   if (!existsSync(FolderMain + '/config.json')) {
@@ -271,6 +279,7 @@ app.whenReady().then(async () => {
   })
 
   let dateformat = ''
+  let ffmpegparams = ''
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
@@ -288,11 +297,13 @@ app.whenReady().then(async () => {
     let url
     if (info.status !== instance.status_types.OFFLINE && info.status !== instance.status_types.NOT_EXIST) {
       url = await instance.extract(args.name, info)
+      url.force_type = instance.config.force_type
     } else {
       url = instance.extension.createResponse({
         nametag: args.name,
         status: info.status,
-        thumb: info.thumb
+        thumb: info.thumb,
+        force_type:instance.config.force_type
       })
     }
 
@@ -307,8 +318,8 @@ app.whenReady().then(async () => {
           url.realtime = recStatus.realtime
           url.codec = recStatus.codec
           url.stats = recStatus.stats
+          url.force_type = instance.config.force_type
         }
-
         event.reply('rec:add', { data: url, provider: args.provider })
       }, 500)
     } else {
@@ -325,11 +336,13 @@ app.whenReady().then(async () => {
     let url
     if (info.status !== instance.status_types.OFFLINE && info.status !== instance.status_types.NOT_EXIST) {
       url = await instance.extract(args.name, info)
+      url.force_type = instance.config.force_type
     } else {
       url = instance.extension.createResponse({
         nametag: args.name,
         status: info.status,
-        thumb: info.thumb
+        thumb: info.thumb,
+        force_type: instance.config.force_type,
       })
     }
 
@@ -344,6 +357,7 @@ app.whenReady().then(async () => {
           url.realtime = recStatus.realtime
           url.codec = recStatus.codec
           url.stats = recStatus.stats
+          url.force_type = instance.config.force_type
         }
         event.reply('rec:recovery', { data: url, provider: args.provider })
       }, 500)
@@ -359,17 +373,19 @@ app.whenReady().then(async () => {
 
   ipcMain.on('res:status', async (event, args) => {
     const statusData = await ListSites[args.provider].update(args.nametag)
-    
-    // Auto-pause/stop logic in main process for better reliability
+
     const rec = await tool.rec(
       args.nametag,
       'checkRec',
-      '',
+      statusData.url ? statusData.url : '',
       statusData.status,
       args.provider,
-      dateformat
+      dateformat,
+      null,
+      null,
+      ffmpegparams
     )
-    
+
     if (rec) {
       event.reply('rec:live:status', {
         nametag: args.nametag,
@@ -391,13 +407,25 @@ app.whenReady().then(async () => {
   })
 
   ipcMain.on('rec:live:status', async (event, args) => {
+    let url = args.url
+    if (args.type === 'startRec') {
+      const instance = ListSites[args.provider]
+      if (instance && instance.config.get_url_new) {
+        const fresh = await instance.extract(args.nametag)
+        url = fresh.url
+      }
+    }
+
     const rec = await tool.rec(
       args.nametag,
       args.type,
-      args.url ? args.url : '',
+      url ? url : '',
       args.status,
       args.provider,
-      dateformat
+      dateformat,
+      args.resolution,
+      args.selresolution,
+      ffmpegparams
     )
     event.reply('rec:live:status', {
       nametag: args.nametag,
@@ -440,6 +468,7 @@ app.whenReady().then(async () => {
   ipcMain.on('Load:config', (event) => {
     const load = tool.loadjson()
     dateformat = load.dateformat
+    ffmpegparams = load.ffmpegparams || ''
     load.providers = Object.values(ListSites).map((ext) => ext.config)
     load.isDev = is.dev
     event.reply('Load:config', load)
@@ -448,6 +477,7 @@ app.whenReady().then(async () => {
 
   ipcMain.on('Modify:config', (event, args) => {
     if (args.name == 'dateformat') dateformat = args.value
+    if (args.name == 'ffmpegparams') ffmpegparams = args.value
 
     if (args.name == 'raw') {
       args.value.map((n) => {
@@ -500,7 +530,7 @@ app.whenReady().then(async () => {
           args.type == 'file' || args.type == 'proxylist' ? 'openFile' : args.type == 'folder' ? 'openDirectory' : 'openFile'
         ],
         filters: [
-          args.type == 'proxylist' 
+          args.type == 'proxylist'
             ? { name: 'Text Files', extensions: ['txt'] }
             : { name: 'Executable', extensions: ['exe'] }
         ]
@@ -517,8 +547,8 @@ app.whenReady().then(async () => {
           localselproxylist = selectedPath
           tool.modifyjson({ raw: { name: 'proxylist', value: selectedPath } })
         }
-        event.reply('Select:Folder', { 
-          ffmpeg: localselffmpeg, 
+        event.reply('Select:Folder', {
+          ffmpeg: localselffmpeg,
           svfolder: localsavefolder,
           proxylist: localselproxylist
         })
@@ -532,6 +562,21 @@ app.whenReady().then(async () => {
 
   ipcMain.on('Folder:open', (event, args) => {
     if (args.path) shell.openPath(args.path)
+  })
+
+  ipcMain.handle('download:thumbnail', async (event, { url, filename }) => {
+    if (!url) return null
+    try {
+      const response = await fetch(url)
+      if (!response.ok) return null
+      const buffer = await response.arrayBuffer()
+      const filepath = path.join(FolderMain, 'temp', `${filename}.jpg`)
+      writeFileSync(filepath, Buffer.from(buffer))
+      return filepath
+    } catch (e) {
+      Logger.error('download:thumbnail error:', e.message)
+      return null
+    }
   })
 
   ipcMain.on('Config:export', (event) => {
@@ -584,7 +629,7 @@ app.whenReady().then(async () => {
 
   // Auto Updater
   autoUpdater.autoDownload = false
-  
+
   ipcMain.on('updater:check', () => {
     autoUpdater.checkForUpdates().catch(err => {
       const window = BrowserWindow.getFocusedWindow()
@@ -624,7 +669,7 @@ app.whenReady().then(async () => {
     const window = BrowserWindow.getAllWindows()[0]
     if (window) window.webContents.send('updater:downloaded', info)
   })
-  
+
   ipcMain.on('extensions:list', (event) => {
     const extensions = Object.entries(ListSites).map(([key, ext]) => ({
       name: ext.config.name,
@@ -687,10 +732,10 @@ app.whenReady().then(async () => {
       if (!response.ok) throw new Error('Failed to download extension')
 
       const code = await response.text()
-      
+
       const useUserExtensions = !is.dev || config.devmode
       const targetDir = useUserExtensions ? UserExtensionsDir : sitesDir
-      
+
       if (!existsSync(targetDir)) mkdirSync(targetDir, { recursive: true })
 
       const filePath = path.join(targetDir, `${className}Extension.js`)
@@ -709,23 +754,23 @@ app.whenReady().then(async () => {
       event.reply('extensions:update', { success: false, name: args.name, error: error.message })
     }
   })
-  
+
   ipcMain.on('extensions:sync-dev', async (event) => {
     try {
       if (!is.dev) throw new Error('Sync only available in dev mode')
       if (!existsSync(UserExtensionsDir)) mkdirSync(UserExtensionsDir, { recursive: true })
-      
+
       const files = readdirSync(sitesDir).filter(f => f.endsWith('Extension.js'))
       for (const file of files) {
         const src = path.join(sitesDir, file)
         const dest = path.join(UserExtensionsDir, file)
         writeFileSync(dest, readFileSync(src))
       }
-      
+
       for (const key of Object.keys(ListSites)) delete ListSites[key]
       await loadExtensions()
       setupRequestRules()
-      
+
       const extensions = Object.entries(ListSites).map(([key, ext]) => ({
         name: ext.config.name,
         version: ext.config.version || '1.0.0'
@@ -743,7 +788,7 @@ app.whenReady().then(async () => {
       const url = `https://api.github.com/repos/TokyoTF/live-rec/contents/extensions?ref=${branch}`
       const response = await fetch(url)
       if (!response.ok) throw new Error('Failed to fetch extensions from GitHub')
-      
+
       const files = await response.json()
       const extFiles = files
         .filter(f => f.name.endsWith('Extension.js'))
@@ -752,7 +797,7 @@ app.whenReady().then(async () => {
           fileName: f.name,
           downloadUrl: f.download_url
         }))
-        
+
       event.reply('extensions:get-github-list', { success: true, extensions: extFiles })
     } catch (error) {
       event.reply('extensions:get-github-list', { success: false, error: error.message })

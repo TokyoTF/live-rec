@@ -6,9 +6,9 @@
   import Settings from '@pages/Settings.svelte'
   import TrayMenu from '@components/TrayMenu.svelte'
   import Toast from '@components/Toast.svelte'
-  import { 
-    init, destroy, 
-    getOnlineCount, getRecordingCount, getTotalCount 
+  import {
+    init,
+    getOnlineCount, getRecordingCount, getTotalCount
   } from '@lib/store.js'
   import { on, send } from '@lib/ipc.js'
 
@@ -34,7 +34,6 @@
 
   onDestroy(() => {
     if (!isTray) {
-      destroy()
       if (unsubStats) unsubStats()
     }
   })

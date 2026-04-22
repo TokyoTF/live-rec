@@ -5,8 +5,9 @@ export default class ChaturbateExtension {
       color: '#f97316',
       domain: 'chaturbate.com',
       referer: true,
+      get_url_new: true,
       patterns: ['https://*.chaturbate.com/*', 'https://*.mmcdn.com/*'],
-      version: '1.0.0'
+      version: '1.0.1'
     }
     this.extension = new ExtensionExtra(this.config)
     this.status_types = this.extension.status_types
@@ -22,11 +23,13 @@ export default class ChaturbateExtension {
       headers: { 'X-Requested-With': 'XMLHttpRequest' },
       body
     })
+  
     return await res.json()
   }
 
   async getInfo(nametag) {
     const res = await this.requestApi(nametag)
+
     const status =
       res.room_status == 'public'
         ? this.status_types.ONLINE
@@ -46,7 +49,7 @@ export default class ChaturbateExtension {
   }
 
   async extract(nametag, cachedData = null) {
-    const { res, status, thumb } = cachedData || (await this.getInfo(nametag))
+    const { res, status, thumb } = await this.getInfo(nametag)
 
     if (status === this.status_types.OFFLINE || status === this.status_types.NOT_EXIST) {
       return this.extension.createResponse({ nametag, status, thumb })
@@ -54,22 +57,30 @@ export default class ChaturbateExtension {
 
     const url = res.url
     const resolutions =
-      status == this.status_types.ONLINE ? await this.extension.getResolutions(url) : ''
+    status == this.status_types.ONLINE ? await this.extension.getResolutions(url, 'https://' + url.split('/')[2]) : []
+    let finalUrl = url
+    if (status === this.status_types.ONLINE) {
+      const freshRes = await this.requestApi(nametag)
+      if (freshRes && freshRes.success && freshRes.url) {
+        finalUrl = freshRes.url
+      }
+    }
 
     return this.extension.createResponse({
       nametag,
       status,
-      url,
+      url: finalUrl,
       resolutions,
       thumb
     })
   }
 
   async update(nametag) {
-    const { status, thumb } = await this.getInfo(nametag)
+    const { status, thumb, res } = await this.getInfo(nametag)
     return this.extension.createUpdate({
       status,
-      thumb
+      thumb,
+      url: res.url
     })
   }
 }

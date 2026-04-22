@@ -22,7 +22,8 @@
   function handleRecToggle() {
     if (!statusRec && !paused) {
       const url = localRecUrl || resolutions?.[0]?.url || ''
-      startRec(nametag, provider, url)
+
+      startRec(nametag, provider, url, resolutions,localRecUrl)
     } else {
       stopRec(nametag, provider, resolutions)
     }
@@ -72,14 +73,14 @@
   <!-- Info -->
   <div class="flex-1 {$viewMode === 'grid' ? 'px-3 py-3 space-y-2' : 'flex items-center justify-between gap-4'}">
     <div class="flex items-center gap-2 min-w-0">
-      <span 
+      <span
         class="text-[10px] font-semibold px-2 py-0.5 rounded-md shrink-0"
         style="background-color: {$PROVIDER_COLORS[provider]}33; color: {$PROVIDER_COLORS[provider]};"
       >
         {provider}
       </span>
       <span class="text-sm font-medium text-white/90 truncate">{nametag}</span>
-      
+
       {#if $viewMode === 'list' && statusRec}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 ml-2">
           <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording'}"></span>

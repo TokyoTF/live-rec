@@ -264,7 +264,7 @@
                 <p class="text-[11px] text-white/40 mb-1">Default View Mode</p>
                 <div class="flex items-center gap-2">
                   <button
-                    class="flex-1 px-4 py-2 rounded-full border text-xs font-medium transition-all cursor-pointer {$viewMode === 'grid' ? 'bg-accent-500 text-white border-accent-400' : 'bg-surface-700 border-surface-600 text-white/70 hover:bg-surface-600'}"
+                    class="flex-1 px-4 py-2 rounded-full border text-xs font-medium transition-all cursor-pointer {$viewMode === 'grid' ? 'bg-accent-500/50 text-white border-accent-400/50' : 'bg-surface-700 border-surface-600 text-white/70 hover:bg-surface-600'}"
                     onclick={() => setViewMode('grid')}
                   >
                     <div class="flex items-center justify-center gap-2">
@@ -273,7 +273,7 @@
                     </div>
                   </button>
                   <button
-                    class="flex-1 px-4 py-2 rounded-full border text-xs font-medium transition-all cursor-pointer {$viewMode === 'list' ? 'bg-accent-500 text-white border-accent-400' : 'bg-surface-700 border-surface-600 text-white/70 hover:bg-surface-600'}"
+                    class="flex-1 px-4 py-2 rounded-full border text-xs font-medium transition-all cursor-pointer {$viewMode === 'list' ? 'bg-accent-500/50 text-white border-accent-400/50' : 'bg-surface-700 border-surface-600 text-white/70 hover:bg-surface-600'}"
                     onclick={() => setViewMode('list')}
                   >
                     <div class="flex items-center justify-center gap-2">
@@ -292,19 +292,19 @@
                 <p class="text-[11px] text-white/40 mb-1">Group Cameras By</p>
                 <div class="flex items-center gap-2">
                   <button
-                    class="flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer {$groupBy === 'none' ? 'bg-accent-500/15 border-accent-500/30 text-accent-400' : 'bg-surface-700 border-white/8 text-white/50 hover:text-white/70'}"
+                    class="flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer {$groupBy === 'none' ? 'bg-accent-500/50 text-white border-accent-400/50' : 'bg-surface-700 border-white/8 text-white/50 hover:text-white/70'}"
                     onclick={() => setGroupBy('none')}
                   >
                     None
                   </button>
                   <button
-                    class="flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer {$groupBy === 'site' ? 'bg-accent-500/15 border-accent-500/30 text-accent-400' : 'bg-surface-700 border-white/8 text-white/50 hover:text-white/70'}"
+                    class="flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer {$groupBy === 'site' ? 'bg-accent-500/50 text-white border-accent-400/50' : 'bg-surface-700 border-white/8 text-white/50 hover:text-white/70'}"
                     onclick={() => setGroupBy('site')}
                   >
                     Site
                   </button>
                   <button
-                    class="flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer {$groupBy === 'group' ? 'bg-accent-500/15 border-accent-500/30 text-accent-400' : 'bg-surface-700 border-white/8 text-white/50 hover:text-white/70'}"
+                    class="flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer {$groupBy === 'group' ? 'bg-accent-500/50 text-white border-accent-400/50' : 'bg-surface-700 border-white/8 text-white/50 hover:text-white/70'}"
                     onclick={() => setGroupBy('group')}
                   >
                     Custom

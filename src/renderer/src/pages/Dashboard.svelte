@@ -2,15 +2,17 @@
   import StatusBar from '@components/StatusBar.svelte'
   import AddLiveModal from '@components/AddLiveModal.svelte'
   import CamCard from '@components/CamCard.svelte'
-  import { 
+  import History from '@components/History.svelte'
+  import {
     recordings, isLoaded, removeOfflineRecordings, updateAllStatus, orderByStatus, setOrderByStatus,
     viewMode, setViewMode, groupBy,
     providers,
     notify
   } from '@lib/store.js'
-  import { SettingsIcon, LayoutGrid, LayoutList, RefreshCcwIcon, Trash2Icon, ArrowUpDownIcon } from 'lucide-svelte'
+  import { SettingsIcon, LayoutGrid, LayoutList, RefreshCcwIcon, Trash2Icon, ArrowUpDownIcon, Video, Film } from 'lucide-svelte'
   import { tooltip } from '@lib/tooltip.js'
 
+  let activeTab = $state('cameras')
   let filter = $state('all')
 
   let filteredRecordings = $derived.by(() => {
@@ -32,7 +34,7 @@
       let key = 'Other'
       if (groupKey === 'site') key = rec.provider || 'Other'
       else if (groupKey === 'group') key = rec.group || 'No Group'
-      
+
       if (!groups[key]) groups[key] = []
       groups[key].push(rec)
     })
@@ -52,6 +54,28 @@
 
   <!-- Toolbar -->
   <div class="flex items-center gap-4 px-4 py-3 border-b border-white/5">
+    <!-- Main tabs: Cameras, History -->
+    <div class="flex items-center gap-1">
+      <button
+        class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer rounded-full {activeTab === 'cameras'
+          ? 'bg-white text-black'
+          : 'bg-surface-700 text-white hover:bg-surface-600'}"
+        onclick={() => activeTab = 'cameras'}
+      >
+        <Video size={12} />
+        Cameras
+      </button>
+      <button
+        class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer rounded-full {activeTab === 'history'
+          ? 'bg-white text-black'
+          : 'bg-surface-700 text-white hover:bg-surface-600'}"
+        onclick={() => activeTab = 'history'}
+      >
+        <Film size={12} />
+        History
+      </button>
+    </div>
+
     <!-- Filter tabs: All, Online, Recording, Offline -->
     <div class="flex items-center gap-1.5">
       {#each filterTabs as tab}
@@ -71,15 +95,15 @@
     <div class="w-px h-5 bg-white/10"></div>
     <!-- Action buttons: Sort, Refresh, Clear Offline -->
     <div class="flex items-center gap-1.5">
-      <button 
+      <button
         onclick={() => setOrderByStatus(!$orderByStatus)}
-        class="p-2 transition-all cursor-pointer rounded-full {$orderByStatus ? 'bg-surface-500 text-white' : 'bg-surface-700 hover:bg-surface-600 text-gray-400 hover:text-white'}"
+        class="p-2 transition-all cursor-pointer rounded-full {$orderByStatus ? 'bg-surface-600 hover:bg-surface-600/50 text-[#e3e3e3]' : 'bg-surface-600 hover:bg-surface-600/50 text-[#e3e3e3]'}"
         use:tooltip={"Sort: " + ($orderByStatus ? 'Online First' : 'Default Order')}
       >
         <ArrowUpDownIcon size={16} />
       </button>
 
-      <button onclick={() => { updateAllStatus(); notify('Refreshing all cameras...', 'info', 2000) }} class="p-2 text-white transition-all cursor-pointer bg-surface-700 hover:bg-surface-600 rounded-full" use:tooltip={"Refresh All"}>
+      <button onclick={() => { updateAllStatus(); notify('Refreshing all cameras...', 'info', 2000) }} class="p-2 text-[#e3e3e3] transition-all cursor-pointer bg-surface-600 hover:bg-surface-600/50 rounded-full" use:tooltip={"Refresh All"}>
         <RefreshCcwIcon size={16} />
       </button>
 
@@ -95,10 +119,10 @@
 
     <!-- View Toggle & Add Live -->
     <div class="flex items-center gap-1.5">
-    
-      <div class="flex items-center bg-surface-700 rounded-lg p-0.5">
+
+      <div class="flex items-center bg-surface-600 rounded-lg p-0.5">
         <button
-          class="p-1.5 transition-all cursor-pointer rounded-md {$viewMode === 'grid' ? 'bg-surface-500 text-white' : 'text-gray-400 hover:text-white'}"
+          class="p-1.5 transition-all cursor-pointer rounded-md {$viewMode === 'grid' ? 'bg-surface-400/50 text-white' : 'text-gray-400 hover:text-white'}"
           onclick={() => setViewMode('grid')}
           use:tooltip={"Grid View"}
         >
@@ -111,15 +135,13 @@
         >
           <LayoutList size={16} />
         </button>
-      </div>
-      
+</div>
     </div>
   </div>
 
-  <!-- Snippet definition (must be outside the {#if} chain) -->
   {#snippet camGrid(items)}
-    <div class={$viewMode === 'grid' 
-      ? "grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3" 
+    <div class={$viewMode === 'grid'
+      ? "grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3"
       : "flex flex-col gap-2"}>
       {#each items as item (item.nametag + '-' + item.provider)}
         {#if item.nametag}
@@ -140,44 +162,48 @@
     </div>
   {/snippet}
 
-  <!-- Grid -->
-  <div class="flex-1 overflow-y-auto p-4">
-    {#if !$isLoaded}
-      <div class="flex items-center justify-center h-full">
-        <div class="spinner"></div>
-      </div>
-    {:else if filteredRecordings.length === 0}
-      <div class="flex flex-col items-center justify-center h-full gap-3 text-white/30">
-        <SettingsIcon size={40} strokeWidth={1} />
-        <p class="text-sm">{filter === 'all' ? 'No cameras added yet' : `No ${filter} cameras`}</p>
-        {#if filter === 'all'}
-          {#if $providers.length === 0}
-            <div class="flex flex-col items-center gap-2 mt-2 px-6 py-4 rounded-2xl bg-accent-500/5 border border-accent-500/10">
-              <p class="text-xs text-accent-400 font-medium">No extensions installed</p>
-              <p class="text-[10px] text-white/40 text-center max-w-[200px]">Extensions are required to fetch camera information. Open the extensions menu to download them from GitHub.</p>
-            </div>
-          {:else}
-            <p class="text-xs">Click "Add Live" to get started</p>
-          {/if}
-        {/if}
-      </div>
-    {:else if !groupedRecordings}
-      {@render camGrid(filteredRecordings)}
+    {#if activeTab === 'history'}
+      <History />
     {:else}
-      <!-- Grouped View -->
-      <div class="space-y-8">
-        {#each Object.entries(groupedRecordings) as [groupName, items]}
-          <div class="space-y-4">
-            <div class="flex items-center gap-3 px-1">
-              <h3 class="text-sm font-bold text-white/60 uppercase tracking-widest">{groupName}</h3>
-              <div class="h-px flex-1 bg-white/5"></div>
-              <span class="text-[10px] font-medium text-white/30">{items.length} CAMERAS</span>
-            </div>
-            
-            {@render camGrid(items)}
+      <!-- Grid -->
+      <div class="flex-1 overflow-y-auto p-4">
+        {#if !$isLoaded}
+          <div class="flex items-center justify-center h-full">
+            <div class="spinner"></div>
           </div>
-        {/each}
+        {:else if filteredRecordings.length === 0}
+          <div class="flex flex-col items-center justify-center h-full gap-3 text-white/30">
+            <SettingsIcon size={40} strokeWidth={1} />
+            <p class="text-sm">{filter === 'all' ? 'No cameras added yet' : `No ${filter} cameras`}</p>
+            {#if filter === 'all'}
+              {#if $providers.length === 0}
+                <div class="flex flex-col items-center gap-2 mt-2 px-6 py-4 rounded-2xl bg-accent-500/5 border border-accent-500/10">
+                  <p class="text-xs text-accent-400 font-medium">No extensions installed</p>
+                  <p class="text-[10px] text-white/40 text-center max-w-50">Extensions are required to fetch camera information. Open the extensions menu to download them from GitHub.</p>
+                </div>
+              {:else}
+                <p class="text-xs">Click "Add Live" to get started</p>
+              {/if}
+            {/if}
+          </div>
+        {:else if !groupedRecordings}
+          {@render camGrid(filteredRecordings)}
+        {:else}
+          <!-- Grouped View -->
+          <div class="space-y-8">
+            {#each Object.entries(groupedRecordings) as [groupName, items]}
+              <div class="space-y-4">
+                <div class="flex items-center gap-3 px-1">
+                  <h3 class="text-sm font-bold text-white/60 uppercase tracking-widest">{groupName}</h3>
+                  <div class="h-px flex-1 bg-white/5"></div>
+                  <span class="text-[10px] font-medium text-white/30">{items.length} CAMERAS</span>
+                </div>
+
+                {@render camGrid(items)}
+              </div>
+            {/each}
+          </div>
+        {/if}
       </div>
     {/if}
   </div>
-</div>

@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store'
-import { send, on } from './ipc.js'
+import { send, on,invoke } from './ipc.js'
 import time from 'humanize-duration'
 
 // ── Time Formatter ──
@@ -79,6 +79,24 @@ export const useragent = writable('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:
 export const recQuality = writable('best')
 export const extBranch = writable('main')
 export const providers = writable([])
+
+export const recordingHistory = writable([])
+
+export function addToHistory(record) {
+  let newHistory
+  recordingHistory.update(h => {
+    newHistory = [{
+      id: Date.now(),
+      timestamp: Date.now(),
+      ...record
+    }, ...h].slice(0, 100)
+    return newHistory
+  })
+  send('Modify:config', {
+    name: 'recordinghistory',
+    value: newHistory
+  })
+}
 
 // Helper: Effectively get save path
 export const effectiveSavePath = derived([nasPath, saveFolder], ([$nas, $save]) => $nas || $save)
@@ -167,7 +185,8 @@ export function saveConfig() {
       { name: 'useragent', value: get(useragent) },
       { name: 'recquality', value: get(recQuality) },
       { name: 'extbranch', value: get(extBranch) },
-      { name: 'devmode', value: get(devmode) }
+      { name: 'devmode', value: get(devmode) },
+      { name: 'recordinghistory', value: get(recordingHistory) }
     ]
   })
 }
@@ -238,9 +257,16 @@ export function addRecording(provider, nametag, group = '') {
 }
 
 export function removeRecording(nametag, provider) {
+  const currentView = get(currentStream)
+
+  if(currentView.nametag === nametag && currentView.url) {
+    setCurrentStream('','')
+  }
+
   recordings.update(r => r.filter(
     (n) => !(n.nametag === nametag && n.provider === provider)
   ))
+
   send('rec:live:remove', { nametag, provider })
 }
 
@@ -249,25 +275,45 @@ export function removeOfflineRecordings() {
   offline.forEach(r => removeRecording(r.nametag, r.provider))
 }
 
-export function startRec(nametag, provider, url) {
+export function startRec(nametag, provider, url, resolution,selresolution) {
   send('rec:live:status', {
     status: 'online',
     nametag,
     type: 'startRec',
     provider,
-    url
+    url,
+    resolution,
+    selresolution
   })
+}
+
+async function downloadThumbnail(url) {
+  if (!url) return null
+  const filename = `${Date.now()}-${Math.random() * 20}`
+  return invoke('download:thumbnail', { url, filename })
 }
 
 export function stopRec(nametag, provider, resolutions) {
   const $recs = get(recordings)
   const index = $recs.findIndex(item => item.nametag === nametag && item.provider === provider)
+  let recordedDuration = 0
   if (index !== -1) {
+    recordedDuration = $recs[index].timeRec || 0
+    const thumb = $recs[index].thumb || ''
     recordings.update(r => {
       const draft = [...r]
       draft[index].timeRec = 0
       draft[index].timeFormat = '0 s'
       return draft
+    })
+
+    downloadThumbnail(thumb).then(thumbPath => {
+      addToHistory({
+        nametag,
+        provider,
+        duration: recordedDuration,
+        thumb: thumbPath || thumb
+      })
     })
   }
   send('rec:live:status', {
@@ -280,12 +326,18 @@ export function stopRec(nametag, provider, resolutions) {
 }
 
 export function selectStream(provider, nametag, url = '') {
+  const $providers = get(providers)
+  const config = $providers.find(p => p.name === provider)
+  if (config?.get_url_new) {
+    send('res:status', { nametag, provider })
+  }
+
   const rec = get(recordings).find(
     (n) => n.nametag === nametag && n.provider === provider
   )
 
   if (rec) {
-    const finalUrl = url || rec.url || pickUrl(rec.resolutions)
+    const finalUrl = rec.url || pickUrl(rec.resolutions)
     if (finalUrl) {
       currentStream.set({ url: finalUrl, nametag })
     }
@@ -320,7 +372,12 @@ function findIndex(nametag, provider) {
 
 export const PROVIDERS = derived(providers, $p => $p.map(p => ({ ...p, value: p.name })))
 export const DOMAIN_TO_PROVIDER = derived(PROVIDERS, $p => Object.fromEntries($p.map(p => [p.domain, p.name])))
-export const PROVIDER_COLORS = derived(PROVIDERS, $p => Object.fromEntries($p.map(p => [p.name, p.color])))
+export const PROVIDER_COLORS = derived(PROVIDERS, $p => Object.fromEntries($p.map(p => [p.name, p.color || '#888888'])))
+
+export function getProviderColor(provider) {
+  const $pc = get(PROVIDER_COLORS)
+  return $pc[provider] || '#888888'
+}
 
 // Compatibility functions
 export function getPROVIDERS() { return get(PROVIDERS) }
@@ -343,13 +400,11 @@ export const DATE_FORMATS = [
 
 // INITIALIZATION & IPC LISTENERS
 
-const unsubscribers = []
-
 export function init() {
+
   if (get(isInitialized)) return
 
   // ── Config Listeners ──
-  unsubscribers.push(
     on('Load:config', (_event, args) => {
       ffmpegPath.set(args.ffmpegselect || '')
       saveFolder.set(args.savefolder || '')
@@ -376,24 +431,22 @@ export function init() {
       devmode.set(args.devmode ?? false)
       isDev.set(args.isDev ?? false)
       providers.set(args.providers || [])
+      recordingHistory.set(args.recordinghistory || [])
 
       setOrderByStatus(args.orderby === 'status')
       loadFromConfig(args.reclist || [])
     })
-  )
 
-  unsubscribers.push(
     on('Select:Folder', (_event, args) => {
       if (args.ffmpeg) ffmpegPath.set(args.ffmpeg)
       if (args.svfolder) saveFolder.set(args.svfolder)
       if (args.proxylist) proxyList.set(args.proxylist)
     })
-  )
 
   // ── Recorder Listeners ──
-  unsubscribers.push(
     on('rec:add', (_event, args) => {
       const idx = findIndex(args.data.nametag, args.provider)
+
       if (idx !== -1) {
         recordings.update(r => {
           const draft = [...r]
@@ -409,7 +462,9 @@ export function init() {
             timeRec: args.data.timeRec || 0,
             status: args.data.status,
             resolutions: args.data.resolutions,
-            timeFormat: formatTime(args.data.timeRec)
+            timeFormat: formatTime(args.data.timeRec),
+            group: args.data.group ?? draft[idx].group,
+              force_type:args.data.force_type
           }
           return draft
         })
@@ -419,9 +474,7 @@ export function init() {
         currentStream.set({ url: args.data.url, nametag: args.data.nametag })
       }
     })
-  )
 
-  unsubscribers.push(
     on('rec:live:status', (_event, args) => {
       const idx = findIndex(args.nametag, args.provider)
       if (idx !== -1) {
@@ -444,25 +497,33 @@ export function init() {
         })
       }
     })
-  )
 
-  unsubscribers.push(
+
     on('res:status', (_event, args) => {
       const idx = findIndex(args.nametag, args.provider)
+      const currentView = get(currentStream)
+
       if (idx === -1) return
-      
+
       recordings.update(r => {
         const draft = [...r]
         const prevStatus = draft[idx].status
-        draft[idx] = {
-          ...draft[idx],
-          thumb: args.data.thumb,
-          status: args.data.status,
-          resolutions: args.data.resolutions || draft[idx].resolutions
-        }
+        const group = args.data.group !== undefined ? args.data.group : draft[idx].group
+          draft[idx] = {
+            ...draft[idx],
+            thumb: args.data.thumb,
+            status: args.data.status,
+            url: args.data.url || draft[idx].url,
+            resolutions: args.data.resolutions || draft[idx].resolutions,
+            group: group
+          }
 
-        // Recovery/Auto-Rec logic
+          if(currentView.nametag === args.nametag && currentView.url && (args.data.status === 'offline' || args.data.status === 'private')) {
+            setCurrentStream('','')
+          }
+
         if (args.data.status === 'online') {
+
           if (draft[idx].paused) {
             console.log(`Resuming recording for ${args.nametag} after private`)
             startRec(args.nametag, args.provider, pickUrl(args.data.resolutions) || pickUrl(draft[idx].resolutions))
@@ -476,9 +537,7 @@ export function init() {
       })
       sortRecordings()
     })
-  )
 
-  unsubscribers.push(
     on('rec:recovery', (_event, args) => {
       const idx = findIndex(args.data.nametag, args.provider)
       if (idx === -1) return
@@ -495,7 +554,7 @@ export function init() {
           timeFormat: formatTime(args.data.timeRec),
           resolutions: args.data.resolutions,
           thumb: args.data.thumb,
-          group: args.data.group || ''
+          group: args.data.group !== undefined ? args.data.group : draft[idx].group
         }
         if (args.data.status === 'online' && get(autoRec)) {
           send('rec:auto', { nametag: args.data.nametag, provider: args.provider })
@@ -504,9 +563,7 @@ export function init() {
       })
       sortRecordings()
     })
-  )
 
-  unsubscribers.push(
     on('rec:auto', (_event, args) => {
       if (!get(autoRec)) return
       if (args?.nametag && args?.provider) {
@@ -522,7 +579,6 @@ export function init() {
         })
       }
     })
-  )
 
   // ── Polling & Time Counter ──
   let pollTimer
@@ -562,7 +618,7 @@ export function init() {
             timeRec: newTime,
             timeFormat: formatTime(newTime)
           }
-          
+
           const maxMs = get(maxRecDuration) * 60 * 1000
           if (maxMs > 0 && newTime >= maxMs) {
             stopRec(n.nametag, n.provider, n.resolutions)
@@ -604,8 +660,4 @@ export function loadFromConfig(reclist) {
       }, delay * index)
     })
   }, initialDelay)
-}
-
-export function destroy() {
-  unsubscribers.forEach((unsub) => unsub())
 }

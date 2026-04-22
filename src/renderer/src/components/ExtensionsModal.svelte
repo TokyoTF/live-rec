@@ -34,8 +34,7 @@
       updates = updates.filter(u => u.name !== data.name)
       githubExtensions = githubExtensions.filter(g => g.name !== data.name)
       notify(`${data.name} extension updated!`, 'success')
-      
-      // Reload the app to apply changes
+
       setTimeout(() => {
         send('window:reload')
       }, 1000)
@@ -48,7 +47,7 @@
     loadingGithub = false
     if (data.success) {
 
-      githubExtensions = data.extensions.filter(g => 
+      githubExtensions = data.extensions.filter(g =>
         !extensions.some(e => e.name.toLowerCase() === g.name.toLowerCase())
       )
     }
@@ -85,7 +84,7 @@
 
 <!-- Trigger Button -->
 <button
-  class="p-2 bg-surface-700 hover:bg-surface-600 text-white transition-all cursor-pointer rounded-full"
+  class="p-2 bg-surface-600 hover:bg-surface-600/60 text-[#e3e3e3] transition-all cursor-pointer rounded-full"
   onclick={open}
   use:tooltip={"Extensions"}
 >
@@ -128,7 +127,7 @@
       </div>
 
       <!-- Extensions List -->
-      <div class="space-y-1.5 max-h-[400px] overflow-y-auto">
+      <div class="space-y-1.5 max-h-100 overflow-y-auto">
         {#if extensions.length === 0}
           <p class="text-xs text-white/30 text-center py-4">No extensions loaded</p>
         {:else}
@@ -170,7 +169,7 @@
       {#if githubExtensions.length > 0}
         <div class="mt-4 pt-4 border-t border-white/5">
           <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3">Available on GitHub</h3>
-          <div class="space-y-1.5 max-h-[200px] overflow-y-auto">
+          <div class="space-y-1.5 max-h-50 overflow-y-auto">
             {#each githubExtensions as ext}
               <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-surface-700/30 border border-white/5">
                 <span class="text-sm text-white/60 capitalize">{ext.name}</span>

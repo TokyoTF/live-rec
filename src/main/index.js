@@ -1,29 +1,51 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, Tray, session, Notification, screen,protocol,net } from 'electron'
+import {
+  app,
+  shell,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  Tray,
+  session,
+  Notification,
+  screen,
+  protocol,
+  net
+} from 'electron'
 import electronUpdater from 'electron-updater'
-import { join } from 'path'
+import { join, resolve, dirname } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import WarpClass from '../../lib/tools.class.js'
-import { existsSync, writeFileSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
-import path from 'path'
+import {
+  existsSync,
+  writeFileSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  unlinkSync
+} from 'node:fs'
 import { pathToFileURL } from 'url'
 import SiteExtra from '../../lib/SiteExtra.js'
 import Logger from '../../lib/logger.class.js'
 
-const FolderMain = path.resolve(process.env.USERPROFILE, 'Documents', 'live-rec')
-const UserExtensionsDir = path.join(FolderMain, 'extensions')
+const FolderMain = resolve(process.env.USERPROFILE, 'Documents', 'live-rec')
+const UserExtensionsDir = join(FolderMain, 'extensions')
 const tool = new WarpClass()
 const autoUpdater = electronUpdater.autoUpdater
 const url = require('node:url')
 
 // Auto-discover and load site extensions
-const sitesDir = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')), '..', '..', 'extensions')
+const sitesDir = join(
+  dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')),
+  '..',
+  '..',
+  'extensions'
+)
 const ListSites = {}
 
 const loadExtensions = async () => {
   const config = tool.loadjson()
   const useUserExtensions = !is.dev || config.devmode
-
 
   for (const key of Object.keys(ListSites)) delete ListSites[key]
 
@@ -32,7 +54,7 @@ const loadExtensions = async () => {
     const extensionFiles = readdirSync(dir).filter((f) => f.endsWith('Extension.js'))
     for (const file of extensionFiles) {
       try {
-        const filePath = path.join(dir, file)
+        const filePath = join(dir, file)
         const mod = await import(pathToFileURL(filePath).href + '?t=' + Date.now())
         const instance = new mod.default(SiteExtra)
         ListSites[instance.config.name] = instance
@@ -98,7 +120,6 @@ const setupRequestRules = () => {
   })
 }
 
-
 let tray = null
 let trayWindow = null
 
@@ -148,7 +169,7 @@ function createWindow() {
 
   protocol.handle('liverec', (request) => {
     const filePath = request.url.slice('liverec://'.length).split('/')[6]
-    return net.fetch(url.pathToFileURL(path.join(FolderMain,'temp', filePath)).toString())
+    return net.fetch(url.pathToFileURL(join(FolderMain, 'temp', filePath)).toString())
   })
 
   mainWindow.on('ready-to-show', () => {
@@ -183,7 +204,7 @@ function createWindow() {
     mkdirSync(FolderMain, { recursive: true })
   }
 
-  const tempFolder = path.join(FolderMain, 'temp')
+  const tempFolder = join(FolderMain, 'temp')
   if (!existsSync(tempFolder)) {
     mkdirSync(tempFolder, { recursive: true })
   }
@@ -234,7 +255,7 @@ app.whenReady().then(async () => {
   // Toggle main window on left click
   tray.on('click', () => {
     const windows = BrowserWindow.getAllWindows()
-    const mainWindow = windows.find(w => w !== trayWindow)
+    const mainWindow = windows.find((w) => w !== trayWindow)
     if (mainWindow) {
       if (mainWindow.isVisible()) {
         mainWindow.hide()
@@ -249,6 +270,7 @@ app.whenReady().then(async () => {
 
   // Show custom context menu on right click
   tray.on('right-click', () => {
+    if (trayWindow && trayWindow.isVisible()) return
     const trayBounds = tray.getBounds()
     const { width: menuWidth, height: menuHeight } = trayWindow.getBounds()
 
@@ -294,7 +316,10 @@ app.whenReady().then(async () => {
     const info = await instance.getInfo(args.name)
 
     let url
-    if (info.status !== instance.status_types.OFFLINE && info.status !== instance.status_types.NOT_EXIST) {
+    if (
+      info.status !== instance.status_types.OFFLINE &&
+      info.status !== instance.status_types.NOT_EXIST
+    ) {
       url = await instance.extract(args.name, info)
       url.force_type = instance.config.force_type
     } else {
@@ -302,7 +327,7 @@ app.whenReady().then(async () => {
         nametag: args.name,
         status: info.status,
         thumb: info.thumb,
-        force_type:instance.config.force_type
+        force_type: instance.config.force_type
       })
     }
 
@@ -333,7 +358,10 @@ app.whenReady().then(async () => {
     const info = await instance.getInfo(args.name)
 
     let url
-    if (info.status !== instance.status_types.OFFLINE && info.status !== instance.status_types.NOT_EXIST) {
+    if (
+      info.status !== instance.status_types.OFFLINE &&
+      info.status !== instance.status_types.NOT_EXIST
+    ) {
       url = await instance.extract(args.name, info)
       url.force_type = instance.config.force_type
     } else {
@@ -341,7 +369,7 @@ app.whenReady().then(async () => {
         nametag: args.name,
         status: info.status,
         thumb: info.thumb,
-        force_type: instance.config.force_type,
+        force_type: instance.config.force_type
       })
     }
 
@@ -473,7 +501,6 @@ app.whenReady().then(async () => {
     event.reply('Load:config', load)
   })
 
-
   ipcMain.on('Modify:config', (event, args) => {
     if (args.name == 'dateformat') dateformat = args.value
     if (args.name == 'ffmpegparams') ffmpegparams = args.value
@@ -489,7 +516,7 @@ app.whenReady().then(async () => {
 
   ipcMain.on('tray:show-app', () => {
     const windows = BrowserWindow.getAllWindows()
-    const mainWindow = windows.find(w => w !== trayWindow)
+    const mainWindow = windows.find((w) => w !== trayWindow)
     if (mainWindow) {
       mainWindow.show()
       mainWindow.focus()
@@ -507,7 +534,7 @@ app.whenReady().then(async () => {
   // Bridge stats from main window to tray window
   ipcMain.on('tray:get-stats', () => {
     const windows = BrowserWindow.getAllWindows()
-    const mainWindow = windows.find(w => w !== trayWindow)
+    const mainWindow = windows.find((w) => w !== trayWindow)
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('tray:get-stats')
     }
@@ -526,7 +553,11 @@ app.whenReady().then(async () => {
     try {
       const typeOpen = dialog.showOpenDialogSync({
         properties: [
-          args.type == 'file' || args.type == 'proxylist' ? 'openFile' : args.type == 'folder' ? 'openDirectory' : 'openFile'
+          args.type == 'file' || args.type == 'proxylist'
+            ? 'openFile'
+            : args.type == 'folder'
+              ? 'openDirectory'
+              : 'openFile'
         ],
         filters: [
           args.type == 'proxylist'
@@ -569,7 +600,7 @@ app.whenReady().then(async () => {
       const response = await fetch(url)
       if (!response.ok) return null
       const buffer = await response.arrayBuffer()
-      const filepath = path.join(FolderMain, 'temp', `${filename}.jpg`)
+      const filepath = join(FolderMain, 'temp', `${filename}.jpg`)
       writeFileSync(filepath, Buffer.from(buffer))
       return filepath
     } catch (e) {
@@ -580,10 +611,10 @@ app.whenReady().then(async () => {
 
   ipcMain.handle('thumbnails:clear', async () => {
     try {
-      const tempDir = path.join(FolderMain, 'temp')
+      const tempDir = join(FolderMain, 'temp')
       if (existsSync(tempDir)) {
-        const files = readdirSync(tempDir).filter(f => f.endsWith('.jpg'))
-        files.forEach(f => unlinkSync(path.join(tempDir, f)))
+        const files = readdirSync(tempDir).filter((f) => f.endsWith('.jpg'))
+        files.forEach((f) => unlinkSync(join(tempDir, f)))
       }
       return true
     } catch (e) {
@@ -597,7 +628,7 @@ app.whenReady().then(async () => {
       const config = tool.loadjson()
       const dest = dialog.showSaveDialogSync({
         title: 'Export Config',
-        defaultPath: path.resolve('live-rec-config.json'),
+        defaultPath: resolve('live-rec-config.json'),
         filters: [{ name: 'JSON', extensions: ['json'] }]
       })
       if (dest) writeFileSync(dest, JSON.stringify(config, null, 2))
@@ -615,7 +646,7 @@ app.whenReady().then(async () => {
       })
       if (src && src.length) {
         const config = JSON.parse(readFileSync(src[0], 'utf8'))
-        writeFileSync(path.join(FolderMain, 'config.json'), JSON.stringify(config, null, 2))
+        writeFileSync(join(FolderMain, 'config.json'), JSON.stringify(config, null, 2))
         event.reply('Load:config', config)
       }
     } catch (e) {
@@ -632,7 +663,10 @@ app.whenReady().then(async () => {
       })
       if (src && src.length) {
         const text = readFileSync(src[0], 'utf8')
-        const lines = text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'))
+        const lines = text
+          .split('\n')
+          .map((l) => l.trim())
+          .filter((l) => l && !l.startsWith('#'))
         event.reply('Models:imported', lines)
       }
     } catch (e) {
@@ -644,9 +678,10 @@ app.whenReady().then(async () => {
   autoUpdater.autoDownload = false
 
   ipcMain.on('updater:check', () => {
-    autoUpdater.checkForUpdates().catch(err => {
+    autoUpdater.checkForUpdates().catch((err) => {
       const window = BrowserWindow.getFocusedWindow()
-      if (window) window.webContents.send('updater:error', err.message || 'Error checking for updates')
+      if (window)
+        window.webContents.send('updater:error', err.message || 'Error checking for updates')
     })
   })
 
@@ -751,7 +786,7 @@ app.whenReady().then(async () => {
 
       if (!existsSync(targetDir)) mkdirSync(targetDir, { recursive: true })
 
-      const filePath = path.join(targetDir, `${className}Extension.js`)
+      const filePath = join(targetDir, `${className}Extension.js`)
       writeFileSync(filePath, code)
 
       await loadExtensions()
@@ -773,10 +808,10 @@ app.whenReady().then(async () => {
       if (!is.dev) throw new Error('Sync only available in dev mode')
       if (!existsSync(UserExtensionsDir)) mkdirSync(UserExtensionsDir, { recursive: true })
 
-      const files = readdirSync(sitesDir).filter(f => f.endsWith('Extension.js'))
+      const files = readdirSync(sitesDir).filter((f) => f.endsWith('Extension.js'))
       for (const file of files) {
-        const src = path.join(sitesDir, file)
-        const dest = path.join(UserExtensionsDir, file)
+        const src = join(sitesDir, file)
+        const dest = join(UserExtensionsDir, file)
         writeFileSync(dest, readFileSync(src))
       }
 
@@ -804,8 +839,8 @@ app.whenReady().then(async () => {
 
       const files = await response.json()
       const extFiles = files
-        .filter(f => f.name.endsWith('Extension.js'))
-        .map(f => ({
+        .filter((f) => f.name.endsWith('Extension.js'))
+        .map((f) => ({
           name: f.name.replace('Extension.js', '').toLowerCase(),
           fileName: f.name,
           downloadUrl: f.download_url

@@ -51,9 +51,9 @@
         <div class="flex items-center gap-3 p-2 bg-surface-800 rounded-lg hover:bg-surface-700 transition-colors">
           <div class="w-20 h-12 rounded-md overflow-hidden bg-surface-900 shrink-0">
             <img
-              src={record.thumb.includes('http')
+              src={record.thumb?.includes('http')
                 ? record.thumb
-                : 'liverec://' + record.thumb.replace(/\\/g, '/')}
+                : 'liverec://' + record.thumb?.replace(/\\/g, '/')}
               alt={record.nametag}
               class="w-full h-full object-cover"
             />

@@ -63,11 +63,11 @@
       use:tooltip={"Maximize"}
       onclick={maximize}
     >
-      <Square size={14} />
+      <Square size={16} />
     </button>
 
     <button
-      class="p-2 hover:bg-[#c53838] text-white transition-all cursor-pointer rounded-full"
+      class="p-2 hover:bg-[#db3f3f] text-white transition-all cursor-pointer rounded-full"
       use:tooltip={"Close"}
       onclick={close}
     >

@@ -32,11 +32,11 @@
     const h = playerElement.offsetHeight || 240
 
     let clampedX = Math.max(padding, Math.min(x, window.innerWidth - w - padding))
-    let clampedY = Math.max(padding, Math.min(y, window.innerHeight - h - padding))
+    let clampedY = Math.max(padding+70, Math.min(y, window.innerHeight - h - padding+70))
 
     const corners = [
-      { x: padding, y: padding },
-      { x: window.innerWidth - w - padding, y: padding },
+      { x: padding, y: padding+70 },
+      { x: window.innerWidth - w - padding, y: padding+70 },
       { x: padding, y: window.innerHeight - h - padding },
       { x: window.innerWidth - w - padding, y: window.innerHeight - h - padding }
     ]

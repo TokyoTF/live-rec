@@ -608,10 +608,10 @@ export function init() {
 
     on('rec:auto', (_event, args) => {
       if (!get(autoRec)) return
-      
+
       const mode = get(autoRecMode)
       const $reclist = get(reclist)
-      
+
       if (args?.nametag && args?.provider) {
         const rec = get(recordings).find(r => r.nametag === args.nametag && r.provider === args.provider)
         if (rec && rec.status === 'online' && !rec.statusRec && pickUrl(rec.resolutions)) {

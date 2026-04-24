@@ -27,6 +27,7 @@
   let groupedRecordings = $derived.by(() => {
     const recs = filteredRecordings
     const groupKey = $groupBy
+    const shouldSortByStatus = $orderByStatus
     if (groupKey === 'none') return null
 
     const groups = {}
@@ -38,7 +39,18 @@
       if (!groups[key]) groups[key] = []
       groups[key].push(rec)
     })
-    return groups
+
+    const statusOrder = 'onlineloadingprivateofflinenotexist'
+    Object.keys(groups).forEach(key => {
+      if (shouldSortByStatus) {
+        groups[key] = [...groups[key]].sort((a, b) =>
+          statusOrder.indexOf(String(a.status)) - statusOrder.indexOf(String(b.status))
+        )
+      }
+    })
+
+    return Object.fromEntries(
+      Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0])))
   })
 
   const filterTabs = [

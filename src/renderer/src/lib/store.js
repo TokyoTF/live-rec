@@ -65,6 +65,8 @@ export const saveFolder = writable('')
 export const nasPath = writable('')
 export const dateFormat = writable('model-site-dd-MM-yyyy_hh-mm-ss')
 export const autoRec = writable(true)
+export const autoRecMode = writable('all')
+export const reclist = writable([])
 export const autoCreateFolder = writable(false)
 export const showStats = writable(false)
 export const viewMode = writable('grid')
@@ -113,6 +115,9 @@ export function getSaveFolder() { return get(saveFolder) }
 export function getNasPath() { return get(nasPath) }
 export function getDateFormat() { return get(dateFormat) }
 export function getAutoRec() { return get(autoRec) }
+export function getAutoRecMode() { return get(autoRecMode) }
+export function getRecList() { return get(reclist) }
+export function setRecList(v) { reclist.set(v); saveConfig() }
 export function getAutoCreateFolder() { return get(autoCreateFolder) }
 export function getShowStats() { return get(showStats) }
 export function getViewMode() { return get(viewMode) }
@@ -140,6 +145,7 @@ export function getIsDev() { return get(isDev) }
 export function setDevMode(v) { devmode.set(v); saveConfig() }
 export function setDateFormat(v) { dateFormat.set(v); saveConfig() }
 export function setAutoRec(v) { autoRec.set(v); saveConfig() }
+export function setAutoRecMode(v) { autoRecMode.set(v); saveConfig() }
 export function setAutoCreateFolder(v) { autoCreateFolder.set(v); saveConfig() }
 export function setNasPath(v) { nasPath.set(v); saveConfig() }
 export function setShowStats(v) { showStats.set(v); saveConfig() }
@@ -172,6 +178,7 @@ export function saveConfig() {
     name: 'raw',
     value: [
       { name: 'autorec', value: get(autoRec) },
+      { name: 'autorecmode', value: get(autoRecMode) },
       { name: 'dateformat', value: get(dateFormat) },
       { name: 'naspath', value: get(nasPath) },
       { name: 'autocreatefolder', value: get(autoCreateFolder) },
@@ -192,7 +199,8 @@ export function saveConfig() {
       { name: 'recquality', value: get(recQuality) },
       { name: 'extbranch', value: get(extBranch) },
       { name: 'devmode', value: get(devmode) },
-      { name: 'recordinghistory', value: get(recordingHistory) }
+      { name: 'recordinghistory', value: get(recordingHistory) },
+      { name: 'reclist', value: get(reclist) }
     ]
   })
 }
@@ -205,6 +213,7 @@ export const isLoaded = writable(false)
 export const isInitialized = writable(false)
 export const orderByStatus = writable(false)
 export const currentStream = writable({ url: '', nametag: '' })
+let isInitializing = false
 
 // Compatibility Getters
 export function getRecordings() { return get(recordings) }
@@ -359,7 +368,8 @@ export function updateAllStatus() {
 }
 
 function sortRecordings() {
-  const statusOrder = 'onlineprivateofflinenotexist'
+  if (isInitializing) return
+  const statusOrder = 'onlineprivateloadingofflinenotexist'
   const isOrdered = get(orderByStatus)
   recordings.update(r => [...r].sort((a, b) => {
     const cmp = statusOrder.indexOf(String(a.status)) - statusOrder.indexOf(String(b.status))
@@ -433,6 +443,7 @@ export function init() {
       nasPath.set(args.naspath || '')
       dateFormat.set(args.dateformat || 'model-site-dd-MM-yyyy_hh-mm-ss')
       autoRec.set(args.autorec ?? true)
+      autoRecMode.set(args.autorecmode || 'all')
       autoCreateFolder.set(args.autocreatefolder ?? false)
       showStats.set(args.showstats ?? false)
       viewMode.set(args.viewmode || 'grid')
@@ -454,6 +465,7 @@ export function init() {
       isDev.set(args.isDev ?? false)
       providers.set(args.providers || [])
       recordingHistory.set(args.recordinghistory || [])
+      reclist.set(args.reclist || [])
       setOrderByStatus(args.orderby === 'status')
       loadFromConfig(args.reclist || [])
     })
@@ -596,15 +608,24 @@ export function init() {
 
     on('rec:auto', (_event, args) => {
       if (!get(autoRec)) return
+      
+      const mode = get(autoRecMode)
+      const $reclist = get(reclist)
+      
       if (args?.nametag && args?.provider) {
         const rec = get(recordings).find(r => r.nametag === args.nametag && r.provider === args.provider)
         if (rec && rec.status === 'online' && !rec.statusRec && pickUrl(rec.resolutions)) {
-          startRec(rec.nametag, rec.provider, pickUrl(rec.resolutions))
+          if (mode === 'all' || (mode === 'favorites' && $reclist.some(f => f.nametag === args.nametag && f.provider === args.provider))) {
+            startRec(rec.nametag, rec.provider, pickUrl(rec.resolutions))
+          }
         }
       } else {
         get(recordings).forEach((rec) => {
           if (rec.status === 'online' && !rec.statusRec && pickUrl(rec.resolutions)) {
-            startRec(rec.nametag, rec.provider, pickUrl(rec.resolutions))
+            const isFav = $reclist.some(f => f.nametag === rec.nametag && f.provider === rec.provider)
+            if (mode === 'all' || (mode === 'favorites' && isFav)) {
+              startRec(rec.nametag, rec.provider, pickUrl(rec.resolutions))
+            }
           }
         })
       }
@@ -678,6 +699,7 @@ export function loadFromConfig(reclist) {
   })))
   isLoaded.set(true)
 
+  isInitializing = true
   const delay = 800
   const initialDelay = 1500
   setTimeout(() => {
@@ -686,5 +708,9 @@ export function loadFromConfig(reclist) {
         send('rec:add', { name: item.nametag, provider: item.provider })
       }, delay * index)
     })
+    setTimeout(() => {
+      isInitializing = false
+      sortRecordings()
+    }, delay * reclist.length + 500)
   }, initialDelay)
 }

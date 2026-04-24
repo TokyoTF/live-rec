@@ -1,9 +1,9 @@
 <script>
   import {
     ffmpegPath, saveFolder, nasPath, dateFormat,
-    autoRec, autoCreateFolder, effectiveSavePath, showStats,
+    autoRec, autoRecMode, autoCreateFolder, effectiveSavePath, showStats,
     viewMode, notifications, groupBy,
-    selectFolder, selectFFmpeg, setDateFormat, setAutoRec,
+    selectFolder, selectFFmpeg, setDateFormat, setAutoRec, setAutoRecMode,
     setAutoCreateFolder, setNasPath, setShowStats,
     setViewMode, setNotifications, setGroupBy,
     pollInterval, setPollInterval, offlinePollInterval, setOfflinePollInterval, maxRecDuration, setMaxRecDuration,
@@ -23,7 +23,7 @@
     FolderIcon, FileIcon, ServerIcon, SaveIcon,
     LayoutGrid, LayoutList, Bell, Layers, XIcon,
     CpuIcon, TimerIcon, Minimize2Icon, RefreshCcwIcon, GlobeIcon, UserIcon,
-    GitBranchIcon, CodeIcon
+    GitBranchIcon, CodeIcon, Heart
   } from 'lucide-svelte'
 </script>
 
@@ -186,6 +186,24 @@
                   <option value="best">Best</option>
                   <option value="optimal">Optimal</option>
                   <option value="lowest">Lowest</option>
+                </select>
+              </div>
+
+              <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5">
+                <div class="flex items-center gap-2">
+                  <Heart size={14} class="text-rose-400 shrink-0" />
+                  <div>
+                    <p class="text-xs text-white/70">Auto Rec Mode</p>
+                    <p class="text-[10px] text-white/30">Record all or favorites only</p>
+                  </div>
+                </div>
+                <select
+                  value={$autoRecMode}
+                  onchange={(e) => setAutoRecMode(e.target.value)}
+                  class="px-3 py-1.5 rounded-lg bg-surface-700 border border-white/8 text-xs text-white/80 outline-none focus:border-accent-500/50 transition-all cursor-pointer"
+                >
+                  <option value="all">All</option>
+                  <option value="favorites">Favorites</option>
                 </select>
               </div>
               {/if}

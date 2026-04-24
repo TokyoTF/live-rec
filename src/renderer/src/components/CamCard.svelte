@@ -1,6 +1,7 @@
 <script>
-  import { PlayIcon, XIcon } from 'lucide-svelte'
-  import { PROVIDER_COLORS, selectStream, removeRecording, startRec, stopRec, viewMode } from '@lib/store.js'
+  import { PlayIcon, XIcon, Heart } from 'lucide-svelte'
+  import { PROVIDER_COLORS, selectStream, removeRecording, startRec, stopRec, viewMode, autoRec, autoRecMode, reclist } from '@lib/store.js'
+  import { send } from '@lib/ipc.js'
 
   let {
     status,
@@ -14,6 +15,8 @@
   } = $props()
 
   let localRecUrl = $state('')
+
+  let isFavorite = $derived($reclist.some(r => r.nametag === nametag && r.provider === provider && r.favorite === true))
 
   function handlePlayClick() {
     selectStream(provider, nametag, localRecUrl)
@@ -31,6 +34,18 @@
 
   function handleRemove() {
     removeRecording(nametag, provider)
+  }
+
+  function toggleFavorite() {
+    let favorite = !isFavorite
+    let item = $reclist.find(i => i.nametag === nametag && i.provider === provider)
+
+    send('Modify:config', { name: 'reclistupdate', value: { ...item, favorite} })
+    reclist.update(r => r.map(i =>
+      i.nametag === nametag && i.provider === provider
+        ? { ...i, favorite }
+        : i
+    ))
   }
 </script>
 
@@ -80,6 +95,18 @@
         {provider}
       </span>
       <span class="text-sm font-medium text-white/90 truncate">{nametag}</span>
+
+      {#if $autoRec && $autoRecMode === 'favorites'}
+        <button
+          class="p-1 rounded-full hover:bg-surface-600 transition-all cursor-pointer"
+          onclick={toggleFavorite}
+        >
+          <Heart
+            size={14}
+            class="{isFavorite ? 'fill-rose-500 text-rose-500' : 'text-white/40 hover:text-white/70'}"
+          />
+        </button>
+      {/if}
 
       {#if $viewMode === 'list' && statusRec}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 ml-2">

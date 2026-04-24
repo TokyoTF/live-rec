@@ -7,6 +7,8 @@ if (import.meta.hot) {
     window.__liveRecState = get(recordings)
     window.__liveRecLoaded = get(isLoaded)
     window.__liveRecHistory = get(recordingHistory)
+    window.__liveRecGroupBy = get(groupBy)
+    window.__liveRecOrderByStatus = get(orderByStatus)
   })
 }
 
@@ -429,6 +431,14 @@ export function init() {
     if (window.__liveRecHistory) {
       recordingHistory.set(window.__liveRecHistory)
       window.__liveRecHistory = null
+    }
+    if (window.__liveRecGroupBy) {
+      groupBy.set(window.__liveRecGroupBy)
+      window.__liveRecGroupBy = null
+    }
+    if (window.__liveRecOrderByStatus !== undefined) {
+      orderByStatus.set(window.__liveRecOrderByStatus)
+      window.__liveRecOrderByStatus = undefined
     }
     window.__liveRecInitCalled = true
     return

@@ -6,6 +6,7 @@ if (import.meta.hot) {
   import.meta.hot.on('vite:beforeUpdate', () => {
     window.__liveRecState = get(recordings)
     window.__liveRecLoaded = get(isLoaded)
+    window.__liveRecHistory = get(recordingHistory)
   })
 }
 
@@ -415,6 +416,10 @@ export function init() {
     isLoaded.set(true)
     isInitialized.set(true)
     window.__liveRecState = null
+    if (window.__liveRecHistory) {
+      recordingHistory.set(window.__liveRecHistory)
+      window.__liveRecHistory = null
+    }
     window.__liveRecInitCalled = true
     return
   }

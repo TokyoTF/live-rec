@@ -1,6 +1,13 @@
 import { writable, derived, get } from 'svelte/store'
-import { send, on,invoke } from './ipc.js'
+import { send, on, invoke, cleanupAll } from './ipc.js'
 import time from 'humanize-duration'
+
+if (import.meta.hot) {
+  import.meta.hot.on('vite:beforeUpdate', () => {
+    window.__liveRecState = get(recordings)
+    window.__liveRecLoaded = get(isLoaded)
+  })
+}
 
 // ── Time Formatter ──
 const timeFormatter = time.humanizer({
@@ -398,12 +405,24 @@ export const DATE_FORMATS = [
 
 // INITIALIZATION & IPC LISTENERS
 
+let pollTimer = null
+let counterInterval = null
 export function init() {
+  cleanupAll()
 
-  if (get(isInitialized)) return
+  if (window.__liveRecState) {
+    recordings.set(window.__liveRecState)
+    isLoaded.set(true)
+    isInitialized.set(true)
+    window.__liveRecState = null
+    window.__liveRecInitCalled = true
+    return
+  }
 
-  // ── Config Listeners ──
-    on('Load:config', (_event, args) => {
+  if (window.__liveRecInitCalled) return
+  window.__liveRecInitCalled = true
+
+  on('Load:config', (_event, args) => {
       ffmpegPath.set(args.ffmpegselect || '')
       saveFolder.set(args.savefolder || '')
       nasPath.set(args.naspath || '')
@@ -430,7 +449,6 @@ export function init() {
       isDev.set(args.isDev ?? false)
       providers.set(args.providers || [])
       recordingHistory.set(args.recordinghistory || [])
-
       setOrderByStatus(args.orderby === 'status')
       loadFromConfig(args.reclist || [])
     })
@@ -441,7 +459,6 @@ export function init() {
       if (args.proxylist) proxyList.set(args.proxylist)
     })
 
-  // ── Recorder Listeners ──
     on('rec:add', (_event, args) => {
       const idx = findIndex(args.data.nametag, args.provider)
 
@@ -462,7 +479,7 @@ export function init() {
             resolutions: args.data.resolutions,
             timeFormat: formatTime(args.data.timeRec),
             group: args.data.group ?? draft[idx].group,
-              force_type:args.data.force_type
+            force_type: args.data.force_type
           }
           return draft
         })
@@ -503,12 +520,10 @@ export function init() {
             timeRec: newTimeRec,
             timeFormat: isRecording ? (args.timeRec ? formatTime(args.timeRec) : draft[idx].timeFormat || '0 s') : '0 s'
           }
-
           return draft
         })
       }
     })
-
 
     on('res:status', (_event, args) => {
       const idx = findIndex(args.nametag, args.provider)
@@ -520,14 +535,14 @@ export function init() {
         const draft = [...r]
         const prevStatus = draft[idx].status
         const group = args.data.group !== undefined ? args.data.group : draft[idx].group
-          draft[idx] = {
-            ...draft[idx],
-            thumb: args.data.thumb,
-            status: args.data.status,
-            url: args.data.url || draft[idx].url,
-            resolutions: args.data.resolutions || draft[idx].resolutions,
-            group: group
-          }
+        draft[idx] = {
+          ...draft[idx],
+          thumb: args.data.thumb,
+          status: args.data.status,
+          url: args.data.url || draft[idx].url,
+          resolutions: args.data.resolutions || draft[idx].resolutions,
+          group: group
+        }
 
         if (currentView.nametag === args.nametag && (args.data.status === 'offline' || args.data.status === 'private')) {
           setCurrentStream('','')
@@ -590,61 +605,58 @@ export function init() {
       }
     })
 
-  // ── Polling & Time Counter ──
-  let pollTimer
-  function schedulePoll() {
-    pollTimer = setTimeout(() => {
-      const $recs = get(recordings)
-      if ($recs.length && get(isLoaded) && get(isInitialized)) {
-        let delayIndex = 0;
-        const now = Date.now();
-        $recs.forEach((v) => {
-          const isOffline = v.status === 'offline' || v.status === 'private' || v.status === 'notexist';
-          const interval = isOffline ? (get(offlinePollInterval) || 120000) : (get(pollInterval) || 50000);
+    function schedulePoll() {
+      pollTimer = setTimeout(() => {
+        const $recs = get(recordings)
+        if ($recs.length && get(isLoaded) && get(isInitialized)) {
+          let delayIndex = 0
+          const now = Date.now()
+          $recs.forEach((v) => {
+            const isOffline = v.status === 'offline' || v.status === 'private' || v.status === 'notexist'
+            const interval = isOffline ? (get(offlinePollInterval) || 120000) : (get(pollInterval) || 50000)
 
-          if (!v.lastCheck || now - v.lastCheck >= interval - 2000) {
-            v.lastCheck = now;
-            setTimeout(() => {
-              send('res:status', { nametag: v.nametag, provider: v.provider })
-            }, 600 * delayIndex)
-            delayIndex++;
+            if (!v.lastCheck || now - v.lastCheck >= interval - 2000) {
+              v.lastCheck = now
+              setTimeout(() => {
+                send('res:status', { nametag: v.nametag, provider: v.provider })
+              }, 600 * delayIndex)
+              delayIndex++
+            }
+          })
+        }
+        schedulePoll()
+      }, 10000)
+    }
+    schedulePoll()
+
+    counterInterval = setInterval(() => {
+      if (!get(isLoaded)) return
+      recordings.update(r => {
+        const draft = [...r]
+        draft.forEach((n, idx) => {
+          if (n.statusRec && !n.paused) {
+            const newTime = (n.timeRec || 0) + 1000
+            draft[idx] = {
+              ...draft[idx],
+              timeRec: newTime,
+              timeFormat: formatTime(newTime)
+            }
+
+            const maxMs = get(maxRecDuration) * 60 * 1000
+            if (maxMs > 0 && newTime >= maxMs) {
+              stopRec(n.nametag, n.provider, n.resolutions)
+            }
           }
         })
-      }
-      schedulePoll()
-    }, 10000)
-  }
-  schedulePoll()
-
-  setInterval(() => {
-    if (!get(isLoaded)) return
-    recordings.update(r => {
-      const draft = [...r]
-      draft.forEach((n, idx) => {
-        if (n.statusRec && !n.paused) {
-          const newTime = (n.timeRec || 0) + 1000
-          draft[idx] = {
-            ...draft[idx],
-            timeRec: newTime,
-            timeFormat: formatTime(newTime)
-          }
-
-          const maxMs = get(maxRecDuration) * 60 * 1000
-          if (maxMs > 0 && newTime >= maxMs) {
-            stopRec(n.nametag, n.provider, n.resolutions)
-          }
-        }
+        return draft
       })
-      return draft
-    })
-  }, 1000)
+    }, 1000)
 
-  // Trigger config load
-  send('Load:config')
-  isInitialized.set(true)
+    send('Load:config')
+    isInitialized.set(true)
+
 }
 
-/** Load the recording list from config response */
 export function loadFromConfig(reclist) {
   if (!reclist.length) {
     isLoaded.set(true)

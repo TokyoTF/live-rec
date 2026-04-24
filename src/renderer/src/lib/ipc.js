@@ -95,7 +95,7 @@ const wsAdapter = {
 }
 
 // ── Exported API — picks the right adapter ──
-const adapter = electronAdapter || wsAdapter
+const adapter = electronAdapter
 
 export function send(channel, data) {
   adapter.send(channel, data)
@@ -114,4 +114,13 @@ export function on(channel, callback) {
 
 export function once(channel, callback) {
   adapter.once(channel, callback)
+}
+
+export function cleanupAll() {
+  wsListeners.clear()
+  if (ws) {
+    ws.close()
+    ws = null
+  }
+  wsReady = false
 }

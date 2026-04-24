@@ -1,16 +1,12 @@
 import { resolve } from 'path'
-import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
+import { defineConfig } from 'electron-vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import { vite as vidstack } from 'vidstack/plugins'
 import tailwindcss from '@tailwindcss/vite'
 
 export default defineConfig({
-  main: {
-    plugins: [externalizeDepsPlugin()]
-  },
-  preload: {
-    plugins: [externalizeDepsPlugin()]
-  },
+  main: {},
+  preload: {},
   renderer: {
     resolve: {
       alias: {
@@ -24,4 +20,3 @@ export default defineConfig({
     plugins: [svelte(), vidstack({ include: /player\// }), tailwindcss()]
   }
 })
-

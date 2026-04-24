@@ -178,7 +178,7 @@
 
         <!-- Error -->
         {#if error}
-          <p class="text-xs text-notexist">{error}</p>
+          <p class="text-sm text-notexist">{error}</p>
         {/if}
 
         <!-- Submit -->

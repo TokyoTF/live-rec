@@ -120,7 +120,7 @@
 
       {#if (statusRec || paused) && $viewMode === 'grid'}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 mt-1">
-          <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-accent-500 pulse-recording'}"></span>
+          <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording pulse-recording'}"></span>
           {timeRec || '0 s'}{paused ? ' - paused' : ''}
         </div>
       {/if}

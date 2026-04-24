@@ -33,8 +33,6 @@ export function getIsSettingsOpen() { return get(isSettingsOpen) } // Compatibil
 
 export const toasts = writable([])
 
-export function getToasts() { return get(toasts) }
-
 export function notify(message, type = 'info', duration = 3000) {
   const id = Date.now() + Math.random().toString(36).substr(2, 9)
   toasts.update(t => [...t, { id, message, type, duration }])
@@ -482,7 +480,19 @@ export function init() {
           const draft = [...r]
           const isRecording = !!args.status
           const isPaused = !!args.paused
+          const wasRecording = draft[idx].statusRec
+          const finalDuration = draft[idx].timeRec || 0
           const newTimeRec = isRecording ? (args.timeRec || draft[idx].timeRec || 0) : 0
+          if (args.status === false && wasRecording && finalDuration > 0) {
+            downloadThumbnail(draft[idx].thumb).then(thumbPath => {
+              addToHistory({
+                nametag: args.nametag,
+                provider: args.provider,
+                duration: finalDuration,
+                thumb: thumbPath || draft[idx].thumb
+              })
+            })
+          }
           draft[idx] = {
             ...draft[idx],
             statusRec: isRecording,
@@ -493,6 +503,7 @@ export function init() {
             timeRec: newTimeRec,
             timeFormat: isRecording ? (args.timeRec ? formatTime(args.timeRec) : draft[idx].timeFormat || '0 s') : '0 s'
           }
+
           return draft
         })
       }
@@ -518,19 +529,8 @@ export function init() {
             group: group
           }
 
-        if(currentView.nametag === args.nametag && (args.data.status === 'offline' || args.data.status === 'private')) {
+        if (currentView.nametag === args.nametag && (args.data.status === 'offline' || args.data.status === 'private')) {
           setCurrentStream('','')
-        }
-
-        if((args.data.status === 'offline' || args.data.status === 'private') && draft[idx].statusRec) {
-          downloadThumbnail(args.data.thumb).then(thumbPath => {
-            addToHistory({
-              nametag: args.data.nametag,
-              provider: args.data.provider,
-              duration: draft[idx].timeRec,
-              thumb: thumbPath || args.data.thumb
-            })
-          })
         }
 
         if (args.data.status === 'online') {

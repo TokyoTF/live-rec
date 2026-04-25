@@ -625,14 +625,14 @@ export function init() {
       if (args?.nametag && args?.provider) {
         const rec = get(recordings).find(r => r.nametag === args.nametag && r.provider === args.provider)
         if (rec && rec.status === 'online' && !rec.statusRec && pickUrl(rec.resolutions)) {
-          if (mode === 'all' || (mode === 'favorites' && $reclist.some(f => f.nametag === args.nametag && f.provider === args.provider))) {
+          if (mode === 'all' || (mode === 'favorites' && $reclist.some(f => f.nametag === args.nametag && f.provider === args.provider && f.favorite === true))) {
             startRec(rec.nametag, rec.provider, pickUrl(rec.resolutions))
           }
         }
       } else {
         get(recordings).forEach((rec) => {
           if (rec.status === 'online' && !rec.statusRec && pickUrl(rec.resolutions)) {
-            const isFav = $reclist.some(f => f.nametag === rec.nametag && f.provider === rec.provider)
+            const isFav = $reclist.some(f => f.nametag === rec.nametag && f.provider === rec.provider && f.favorite === true)
             if (mode === 'all' || (mode === 'favorites' && isFav)) {
               startRec(rec.nametag, rec.provider, pickUrl(rec.resolutions))
             }

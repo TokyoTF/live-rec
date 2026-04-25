@@ -43,10 +43,11 @@
       const draft = [...r]
       if (index !== -1 && draft[index]) {
         draft[index] = { ...draft[index], favorite }
+       send('Modify:config', { name: 'reclistupdate', value: { ...draft[index], favorite} })
       }
       return draft
     })
-    send('Modify:config', { name: 'reclistupdate', value: { ...$reclist[index], favorite} })
+
   }
 </script>
 
@@ -104,7 +105,7 @@
         >
           <Heart
             size={14}
-            class="{isFavorite ? 'fill-rose-500 text-rose-500' : 'text-white/40 hover:text-white/70'}"
+            class={isFavorite ? 'fill-rose-500 text-rose-500' : 'text-white/40 hover:text-white/70'}
           />
         </button>
       {/if}

@@ -38,7 +38,6 @@
   }
 </script>
 
-<div class="flex flex-col h-full">
   {#if $recordingHistory.length === 0}
     <div class="flex flex-col items-center justify-center h-full gap-3 text-white/30">
       <Film size={40} strokeWidth={1} />
@@ -46,7 +45,7 @@
       <p class="text-xs">Completed recordings will appear here</p>
     </div>
   {:else}
-    <div class="max-h-[70vh] flex-1 overflow-y-auto p-3 space-y-2">
+    <div class="flex-1 overflow-y-auto p-3 space-y-2">
       {#each $recordingHistory as record (record.id)}
         <div class="flex items-center gap-3 p-2 bg-surface-800 rounded-lg hover:bg-surface-700 transition-colors">
           <div class="w-20 h-12 rounded-md overflow-hidden bg-surface-900 shrink-0">
@@ -90,4 +89,3 @@
       </button>
     </div>
   {/if}
-</div>

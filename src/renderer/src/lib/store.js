@@ -714,6 +714,7 @@ export function loadFromConfig(reclist) {
   const initialDelay = 1500
   setTimeout(() => {
     get(recordings).forEach((item, index) => {
+      if (!item.nametag && !item.provider) return
       setTimeout(() => {
         send('rec:add', { name: item.nametag, provider: item.provider })
       }, delay * index)

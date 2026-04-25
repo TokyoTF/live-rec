@@ -39,15 +39,18 @@
   function toggleFavorite() {
     let favorite = !isFavorite
     let index = $reclist.findIndex(i => i.nametag === nametag && i.provider === provider)
+    let updatedItem = null
     reclist.update(r => {
       const draft = [...r]
       if (index !== -1 && draft[index]) {
         draft[index] = { ...draft[index], favorite }
-       send('Modify:config', { name: 'reclistupdate', value: { ...draft[index], favorite} })
+        updatedItem = draft[index]
       }
       return draft
     })
-
+    if (updatedItem) {
+      send('Modify:config', { name: 'reclistupdate', value: updatedItem })
+    }
   }
 </script>
 

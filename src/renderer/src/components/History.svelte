@@ -48,14 +48,16 @@
     <div class="flex-1 overflow-y-auto p-3 space-y-2">
       {#each $recordingHistory as record (record.id)}
         <div class="flex items-center gap-3 p-2 bg-surface-800 rounded-lg hover:bg-surface-700 transition-colors">
-          <div class="w-20 h-12 rounded-md overflow-hidden bg-surface-900 shrink-0">
+          <div class="w-20 h-12 rounded-md overflow-hidden bg-surface-900 shrink-0 flex items-center justify-center">
             <img
               src={record.thumb?.includes('http')
                 ? record.thumb
                 : 'liverec://' + record.thumb?.replace(/\\/g, '/')}
               alt={record.nametag}
               class="w-full h-full object-cover"
+              onerror={(e) => { e.currentTarget.style.display='none'; e.currentTarget.nextElementSibling.style.display='block'; }}
             />
+            <span class="text-[10px] text-white/40 text-center hidden">Thumbnail not loaded</span>
           </div>
 
           <div class="flex-1 min-w-0">

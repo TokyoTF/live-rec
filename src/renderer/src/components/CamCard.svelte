@@ -101,7 +101,6 @@
       </span>
       <span class="text-sm font-medium text-white/90 truncate">{nametag}</span>
 
-      {#if $autoRec && $autoRecMode === 'favorites'}
         <button
           class="p-1 rounded-full hover:bg-surface-600 transition-all cursor-pointer"
           onclick={toggleFavorite}
@@ -111,7 +110,6 @@
             class={isFavorite ? 'fill-rose-500 text-rose-500' : 'text-white/40 hover:text-white/70'}
           />
         </button>
-      {/if}
 
       {#if $viewMode === 'list' && statusRec}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 ml-2">

@@ -268,6 +268,7 @@ export function addRecording(provider, nametag, group = '') {
     timeFormat: '0 s'
   }])
 
+  reclist.update(r => [...r, { nametag, provider, group, favorite: false }])
   send('Modify:config', { name: 'reclist', value: { nametag, provider, group } })
   send('rec:add', { name: nametag, provider })
   return true

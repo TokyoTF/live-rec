@@ -1,9 +1,9 @@
 {
   "name": "live-rec",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "application to record the livestream of a page like bongacams, camsoda, chaturbate, dreamcam.",
   "main": "./out/main/index.js",
-  "type":"module",
+  "type": "module",
   "author": "TokyoTF",
   "scripts": {
     "format": "prettier --plugin prettier-plugin-svelte --write .",
@@ -26,13 +26,11 @@
     "electron-updater": "6.1.7",
     "fluent-ffmpeg": "2.1.3",
     "hls.js": "1.5.13",
-    "https-proxy-agent": "7.0.6",
     "humanize-duration": "3.32.1",
     "lucide-svelte": "0.545.0",
     "m3u8-parser": "7.1.0",
-    "node-fetch": "3.3.2",
-    "socks-proxy-agent": "8.0.5",
     "tailwindcss": "4.1.18",
+    "undici": "^8.2.0",
     "vidstack": "1.12.13"
   },
   "devDependencies": {

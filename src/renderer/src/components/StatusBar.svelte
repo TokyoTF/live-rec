@@ -49,7 +49,7 @@
   <!-- Session Stats -->
   <div class="flex items-center gap-1.5 text-xs text-white">
     <HardDrive size={10} class="text-blue-400" />
-    <span class="font-bold">{sessionRecordedToday}</span>
+    <span class="font-bold">{$sessionRecordedToday}</span>
     <span class="text-gray-400">Today</span>
   </div>
 

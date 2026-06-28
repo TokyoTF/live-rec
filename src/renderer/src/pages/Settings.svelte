@@ -16,6 +16,7 @@
     extBranch, setExtBranch,
     orderByStatus, setOrderByStatus,
     isSettingsOpen, closeSettings,
+    openLogs,
     isDev, devmode, setDevMode, syncDevExtensions,
     DATE_FORMATS, providers
   } from '@lib/store.js'
@@ -23,7 +24,7 @@
     FolderIcon, FileIcon, ServerIcon, SaveIcon,
     LayoutGrid, LayoutList, Bell, Layers, XIcon,
     CpuIcon, TimerIcon, Minimize2Icon, RefreshCcwIcon, GlobeIcon, UserIcon,
-    GitBranchIcon, CodeIcon, Heart
+    GitBranchIcon, CodeIcon, Heart, FileText
   } from 'lucide-svelte'
 </script>
 
@@ -503,6 +504,15 @@
                 <p class="text-[10px] text-white/30 mt-1">Branch used for extension updates from GitHub.</p>
               </div>
             </div>
+
+            <!-- View Logs Button -->
+            <button
+              class="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-surface-800/80 border border-white/5 text-xs font-medium text-white/70 hover:bg-surface-700 hover:text-white transition-all cursor-pointer"
+              onclick={openLogs}
+            >
+              <FileText size={14} />
+              Ver Logs
+            </button>
           </div>
         </section>
 

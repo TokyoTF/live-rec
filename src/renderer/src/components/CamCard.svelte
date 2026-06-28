@@ -11,7 +11,8 @@
     statusRec,
     paused,
     resolutions,
-    timeRec
+    timeRec,
+    recoveryPending
   } = $props()
 
   let localRecUrl = $state('')
@@ -39,7 +40,7 @@
   function toggleFavorite() {
     let favorite = !isFavorite
     let index = $reclist.findIndex(i => i.nametag === nametag && i.provider === provider)
-    
+
     if (index !== -1) {
       reclist.update(r => {
         const draft = [...r]
@@ -117,12 +118,13 @@
     </div>
 
     <!-- Recording controls -->
-    {#if (status === 'online' && resolutions?.length > 0) || statusRec}
+    {#if (status === 'online' && resolutions?.length > 0 && !recoveryPending) || statusRec}
       <div class="flex items-center gap-2 {$viewMode === 'grid' ? 'pt-1' : ''}">
         {#if $viewMode === 'grid' && resolutions?.length > 0}
           <select
             bind:value={localRecUrl}
-            class="flex-1 min-w-0 px-3 py-1.5 rounded-full bg-surface-600 border border-surface-500 text-[11px] font-medium text-white/90 outline-none focus:border-accent-500 transition-all cursor-pointer hover:bg-surface-500"
+            disabled={statusRec}
+            class="flex-1 min-w-0 px-3 py-1.5 disabled:opacity-70 disabled:hover:bg-surface-600 rounded-full bg-surface-600 border border-surface-500 text-[11px] font-medium text-white/90 outline-none focus:border-accent-500 transition-all cursor-pointer hover:bg-surface-500"
           >
             <option value="" disabled selected>
               {resolutions[0]?.resolution.width}x{resolutions[0]?.resolution.height} {#if resolutions[0]?.fps}{resolutions[0]?.fps}fps{/if}

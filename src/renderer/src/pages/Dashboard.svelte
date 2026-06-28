@@ -168,6 +168,7 @@
             paused={item.paused}
             codec={item.codec}
             stats={item.stats}
+            recoveryPending={item._recoveryPending}
           />
         {/if}
       {/each}

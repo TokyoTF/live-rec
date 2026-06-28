@@ -11,6 +11,7 @@ import {
   protocol,
   net
 } from 'electron'
+import { fetch } from 'undici'
 import electronUpdater from 'electron-updater'
 import { join, resolve, dirname } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
@@ -22,7 +23,6 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
-  unlinkSync
 } from 'node:fs'
 import { pathToFileURL } from 'url'
 import SiteExtra from '../../lib/SiteExtra.js'
@@ -31,6 +31,12 @@ import Logger from '../../lib/logger.class.js'
 const FolderMain = resolve(process.env.USERPROFILE, 'Documents', 'live-rec')
 const UserExtensionsDir = join(FolderMain, 'extensions')
 const tool = new WarpClass()
+
+WarpClass.setErrorCallback((err) => {
+  const mainWin = BrowserWindow.getAllWindows()[0]
+  if (mainWin) mainWin.webContents.send('rec:error', err)
+})
+
 const autoUpdater = electronUpdater.autoUpdater
 const url = require('node:url')
 
@@ -41,7 +47,12 @@ const sitesDir = join(
   '..',
   'extensions'
 )
+
+const LogFile = join(FolderMain, 'log.txt')
+
 const ListSites = {}
+
+tool.loadProxyPool()
 
 const loadExtensions = async () => {
   const config = tool.loadjson()
@@ -103,9 +114,9 @@ const setupRequestRules = () => {
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0'
 
     if (details && details.requestHeaders) {
-      details.requestHeaders['Access-Control-Allow-Origin'] = '*'
-      details.requestHeaders['Origin'] = ''
-      details.requestHeaders['User-Agent'] = ua
+      //details.requestHeaders['Access-Control-Allow-Origin'] = '*'
+      //details.requestHeaders['Origin'] = ''
+      //details.requestHeaders['User-Agent'] = ua
 
       const matchedRule = patternsToSite.find((p) => p.regex.test(details.url))
       if (matchedRule) {
@@ -168,8 +179,13 @@ function createWindow() {
   })
 
   protocol.handle('liverec', (request) => {
-    const filePath = request.url.slice('liverec://'.length).split('/')[6]
-    return net.fetch(url.pathToFileURL(join(FolderMain, 'temp', filePath)).toString())
+    if(request.url.includes('.jpg')) {
+      const filePath = request.url.slice('liverec://'.length).split('/')[6]
+      return net.fetch(url.pathToFileURL(join(FolderMain, 'temp', filePath)).toString())
+    } else {
+      Logger.error('One or more thumbnails failed to load')
+      return
+    }
   })
 
   mainWindow.on('ready-to-show', () => {
@@ -207,6 +223,10 @@ function createWindow() {
   const tempFolder = join(FolderMain, 'temp')
   if (!existsSync(tempFolder)) {
     mkdirSync(tempFolder, { recursive: true })
+  }
+
+  if (!existsSync(LogFile)) {
+    writeFileSync(LogFile, '')
   }
 
   if (!existsSync(FolderMain + '/config.json')) {
@@ -311,85 +331,105 @@ app.whenReady().then(async () => {
   })
 
   ipcMain.on('rec:add', async (event, args) => {
-    Logger.success(`Add Model ${args.name} - ${args.provider}`)
-    const instance = ListSites[args.provider]
-    const info = await instance.getInfo(args.name)
+    try {
+      Logger.success(`Add Model ${args.name} - ${args.provider}`)
+      const instance = ListSites[args.provider]
+      const info = await instance.getInfo(args.name)
 
-    let url
-    if (
-      info.status !== instance.status_types.OFFLINE &&
-      info.status !== instance.status_types.NOT_EXIST
-    ) {
-      url = await instance.extract(args.name, info)
-      url.force_type = instance.config.force_type
-    } else {
-      url = instance.extension.createResponse({
-        nametag: args.name,
-        status: info.status,
-        thumb: info.thumb,
-        force_type: instance.config.force_type
-      })
-    }
+      let url
+      if (
+        info.status !== instance.status_types.OFFLINE &&
+        info.status !== instance.status_types.NOT_EXIST
+      ) {
+        url = await instance.extract(args.name, info)
+        url.force_type = instance.config.force_type
+      } else {
+        url = instance.extension.createResponse({
+          nametag: args.name,
+          status: info.status,
+          thumb: info.thumb,
+          force_type: instance.config.force_type
+        })
+      }
 
-    if (url.status == 'online' || url.status == 'offline' || url.status == 'private') {
-      await tool.recInit({ nametag: args.name, provider: args.provider, dateformat })
-      setTimeout(() => {
-        const recStatus = tool.getRecording(args.name, args.provider)
-        if (recStatus) {
-          url.statusRec = recStatus.statusRec
-          url.paused = recStatus.paused
-          url.timeRec = recStatus.statusRec ? recStatus.timeRec : 0
-          url.realtime = recStatus.realtime
-          url.codec = recStatus.codec
-          url.stats = recStatus.stats
-          url.force_type = instance.config.force_type
-        }
+      if (url.status == 'online' || url.status == 'offline' || url.status == 'private') {
+        await tool.recInit({ nametag: args.name, provider: args.provider, dateformat })
+        setTimeout(() => {
+          const recStatus = tool.getRecording(args.name, args.provider)
+          if (recStatus) {
+            url.statusRec = recStatus.statusRec
+            url.paused = recStatus.paused
+            url.timeRec = recStatus.statusRec ? recStatus.timeRec : 0
+            url.realtime = recStatus.realtime
+            url.codec = recStatus.codec
+            url.stats = recStatus.stats
+            url.force_type = instance.config.force_type
+          }
+          event.reply('rec:add', { data: url, provider: args.provider })
+        }, 500)
+      } else {
         event.reply('rec:add', { data: url, provider: args.provider })
-      }, 500)
-    } else {
-      event.reply('rec:add', { data: url, provider: args.provider })
+      }
+    } catch (err) {
+      Logger.error(`rec:add error (${args.name}):`, err.message)
+      event.reply('rec:add', {
+        data: { nametag: args.name, status: 'offline', url: '', resolutions: [], thumb: '', statusRec: false, timeRec: 0 },
+        provider: args.provider
+      })
     }
   })
 
   ipcMain.on('rec:recovery', async (event, args) => {
-    Logger.info(`Recovery Model ${args.name} - ${args.provider}`)
+    try {
+      Logger.info(`Recovery Model ${args.name} - ${args.provider}`)
 
-    const instance = ListSites[args.provider]
-    const info = await instance.getInfo(args.name)
+      const instance = ListSites[args.provider]
+      const info = await instance.getInfo(args.name)
+      const referer = instance && instance.config.domain ? `https://${instance.config.domain}/` : ''
 
-    let url
-    if (
-      info.status !== instance.status_types.OFFLINE &&
-      info.status !== instance.status_types.NOT_EXIST
-    ) {
-      url = await instance.extract(args.name, info)
-      url.force_type = instance.config.force_type
-    } else {
-      url = instance.extension.createResponse({
-        nametag: args.name,
-        status: info.status,
-        thumb: info.thumb,
-        force_type: instance.config.force_type
-      })
-    }
+      let url
+      if (
+        info.status !== instance.status_types.OFFLINE &&
+        info.status !== instance.status_types.NOT_EXIST &&
+        info.status !== instance.status_types.PRIVATE
+      ) {
+        url = await instance.extract(args.name, info)
+        url.force_type = instance.config.force_type
+      } else {
+        url = instance.extension.createResponse({
+          nametag: args.name,
+          status: info.status,
+          thumb: info.thumb,
+          force_type: instance.config.force_type
+        })
+      }
 
-    if (url.status == 'online' || url.status == 'offline' || url.status == 'private') {
-      await tool.recInit({ nametag: args.name, provider: args.provider, dateformat })
-      setTimeout(() => {
-        const recStatus = tool.getRecording(args.name, args.provider)
-        if (recStatus) {
-          url.statusRec = recStatus.statusRec
-          url.paused = recStatus.paused
-          url.timeRec = recStatus.statusRec ? recStatus.timeRec : 0
-          url.realtime = recStatus.realtime
-          url.codec = recStatus.codec
-          url.stats = recStatus.stats
-          url.force_type = instance.config.force_type
-        }
+      Logger.info(`Recovery URL: instance - ${info.status}/${url.status}/${url.nametag}`)
+
+      if (url.status == 'online' || url.status == 'offline' || url.status == 'private') {
+        await tool.recInit({ nametag: args.name, provider: args.provider, dateformat, referer })
+        setTimeout(() => {
+          const recStatus = tool.getRecording(args.name, args.provider)
+          if (recStatus) {
+            url.statusRec = recStatus.statusRec
+            url.paused = recStatus.paused
+            url.timeRec = recStatus.statusRec ? recStatus.timeRec : 0
+            url.realtime = recStatus.realtime
+            url.codec = recStatus.codec
+            url.stats = recStatus.stats
+            url.force_type = instance.config.force_type
+          }
+          event.reply('rec:recovery', { data: url, provider: args.provider })
+        }, 500)
+      } else {
         event.reply('rec:recovery', { data: url, provider: args.provider })
-      }, 500)
-    } else {
-      event.reply('rec:recovery', { data: url, provider: args.provider })
+      }
+    } catch (err) {
+      Logger.error(`rec:recovery error (${args.name}):`, err.message)
+      event.reply('rec:recovery', {
+        data: { nametag: args.name, status: 'offline', url: '', resolutions: [], thumb: '', statusRec: false, timeRec: 0 },
+        provider: args.provider
+      })
     }
   })
 
@@ -399,75 +439,125 @@ app.whenReady().then(async () => {
   })
 
   ipcMain.on('res:status', async (event, args) => {
-    const statusData = await ListSites[args.provider].update(args.nametag)
+    try {
+      const instance = ListSites[args.provider]
+      const referer = instance && instance.config.domain ? `https://${instance.config.domain}/` : ''
+      const statusData = await ListSites[args.provider].update(args.nametag)
 
-    const rec = await tool.rec(
-      args.nametag,
-      'checkRec',
-      statusData.url ? statusData.url : '',
-      statusData.status,
-      args.provider,
-      dateformat,
-      null,
-      null,
-      ffmpegparams
-    )
+      const rec = await tool.rec(
+        args.nametag,
+        'checkRec',
+        statusData.url ? statusData.url : '',
+        statusData.status,
+        args.provider,
+        dateformat,
+        null,
+        null,
+        ffmpegparams,
+        referer
+      )
 
-    if (rec) {
-      event.reply('rec:live:status', {
+      if (rec) {
+        event.reply('rec:live:status', {
+          nametag: args.nametag,
+          provider: args.provider,
+          status: rec.recording || rec.paused || false,
+          paused: rec.paused || false,
+          realtime: rec.realtime || false,
+          codec: rec.codec || null,
+          stats: rec.stats || null,
+          timeRec: tool.getRecTime(rec)
+        })
+      }
+
+      event.reply('res:status', {
         nametag: args.nametag,
         provider: args.provider,
-        status: rec.recording || rec.paused || false,
-        paused: rec.paused || false,
-        realtime: rec.realtime || false,
-        codec: rec.codec || null,
-        stats: rec.stats || null,
-        timeRec: tool.getRecTime(rec)
+        data: statusData
+      })
+    } catch (err) {
+      Logger.error(`res:status error (${args.nametag}):`, err.message)
+      event.reply('res:status', {
+        nametag: args.nametag,
+        provider: args.provider,
+        data: { status: 'offline', thumb: '', url: '' }
       })
     }
-
-    event.reply('res:status', {
-      nametag: args.nametag,
-      provider: args.provider,
-      data: statusData
-    })
   })
 
   ipcMain.on('rec:live:status', async (event, args) => {
-    let url = args.url
-    if (args.type === 'startRec') {
-      const instance = ListSites[args.provider]
-      if (instance && instance.config.get_url_new) {
-        const fresh = await instance.extract(args.nametag)
-        url = fresh.url
+    try {
+      let url = args.url
+      let referer = ''
+      if (args.type === 'startRec') {
+        const instance = ListSites[args.provider]
+        if (instance && instance.config.get_url_new) {
+      if (args.provider === 'chaturbate' && instance.getStreamUrlForRec) {
+          const proxy = tool.assignProxyToStream(args.nametag, args.provider)
+          const result = await instance.getStreamUrlForRec(args.nametag, proxy, args.selresolution)
+          if (result.url) url = result.url
+        } else if (args.provider === 'chaturbate' && instance.getStreamUrl) {
+          const proxy = tool.assignProxyToStream(args.nametag, args.provider)
+          const freshUrl = await instance.getStreamUrl(args.nametag, proxy, args.selresolution)
+          if (freshUrl) url = freshUrl
+          } else {
+            const fresh = await instance.extract(args.nametag)
+            url = fresh.url
+          }
+        }
+        // Get referer from site config
+        if (instance && instance.config.domain) {
+          referer = `https://${instance.config.domain}/`
+        }
       }
-    }
+      Logger.info('url', url)
+      Logger.info('url2', args.url)
 
-    const rec = await tool.rec(
-      args.nametag,
-      args.type,
-      url ? url : '',
-      args.status,
-      args.provider,
-      dateformat,
-      args.resolution,
-      args.selresolution,
-      ffmpegparams
-    )
-    event.reply('rec:live:status', {
-      nametag: args.nametag,
-      provider: args.provider,
-      status: rec?.recording || rec?.paused || false,
-      paused: rec?.paused || false,
-      realtime: rec?.realtime || false,
-      codec: rec?.codec || null,
-      stats: rec?.stats || null,
-      timeRec: rec ? tool.getRecTime(rec) : 0
-    })
+      const rec = await tool.rec(
+        args.nametag,
+        args.type,
+        url ? url : '',
+        args.status,
+        args.provider,
+        dateformat,
+        args.resolution,
+        args.selresolution,
+        ffmpegparams,
+        referer
+      )
+      event.reply('rec:live:status', {
+        nametag: args.nametag,
+        provider: args.provider,
+        status: rec?.recording || rec?.paused || false,
+        paused: rec?.paused || false,
+        realtime: rec?.realtime || false,
+        codec: rec?.codec || null,
+        stats: rec?.stats || null,
+        timeRec: rec ? tool.getRecTime(rec) : 0
+      })
+    } catch (err) {
+      Logger.error(`rec:live:status error (${args.nametag}):`, err.message)
+      event.reply('rec:live:status', {
+        nametag: args.nametag,
+        provider: args.provider,
+        status: false,
+        paused: false,
+        realtime: false,
+        codec: null,
+        stats: null,
+        timeRec: 0
+      })
+    }
   })
 
   ipcMain.on('rec:auto', (event) => {
     event.reply('rec:auto')
+  })
+
+  ipcMain.on('log:open', () => {
+    if (existsSync(LogFile)) {
+      shell.openPath(LogFile)
+    }
   })
 
   ipcMain.on('window:minimize', () => {
@@ -509,8 +599,14 @@ app.whenReady().then(async () => {
       args.value.map((n) => {
         tool.modifyjson({ raw: { name: n.name, value: n.value } })
       })
+      const config = tool.loadjson()
+      event.reply('Modify:config', config)
     } else {
       tool.modifyjson({ raw: { name: args.name, value: args.value } })
+      if (args.name === 'reclist' || args.name === 'reclistremove' || args.name === 'reclistupdate') {
+        const config = tool.loadjson()
+        event.reply('Modify:config', config)
+      }
     }
   })
 

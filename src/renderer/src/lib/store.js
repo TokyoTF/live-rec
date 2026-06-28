@@ -169,6 +169,7 @@ export function setExtBranch(v) { extBranch.set(v); saveConfig() }
 // Config Methods
 export function selectFolder() { send('Select:Folder', { type: 'folder' }) }
 export function selectFFmpeg() { send('Select:Folder', { type: 'file' }) }
+export function openLogs() { send('log:open') }
 export function selectProxyList() { send('Select:Folder', { type: 'proxylist' }) }
 export function syncDevExtensions() { send('extensions:sync-dev') }
 export function openSaveFolder() { send('Folder:open', { path: get(effectiveSavePath) }) }
@@ -514,8 +515,12 @@ export function init() {
       }
       sortRecordings()
       if (!get(currentStream).url && args.data.status === 'online') {
-        currentStream.set({ url: args.data.url, nametag: args.data.nametag })
+        //currentStream.set({ url: args.data.url, nametag: args.data.nametag })
       }
+    })
+
+    on('rec:error', (_event, args) => {
+      notify(args.error, 'error', 7000)
     })
 
     on('rec:live:status', (_event, args) => {
@@ -569,7 +574,8 @@ export function init() {
           status: args.data.status,
           url: args.data.url || draft[idx].url,
           resolutions: args.data.resolutions || draft[idx].resolutions,
-          group: group
+          group: group,
+          _recoveryPending: false
         }
 
         if (currentView.nametag === args.nametag && (args.data.status === 'offline' || args.data.status === 'private')) {
@@ -581,6 +587,7 @@ export function init() {
             console.log(`Resuming recording for ${args.nametag} after private`)
             startRec(args.nametag, args.provider, pickUrl(args.data.resolutions) || pickUrl(draft[idx].resolutions))
           } else if ((prevStatus === 'private' || prevStatus === 'offline')) {
+            draft[idx]._recoveryPending = true
             send('rec:recovery', { name: args.nametag, provider: args.provider })
           } else if (get(autoRec) && !draft[idx].statusRec) {
             send('rec:auto', { nametag: args.nametag, provider: args.provider })
@@ -607,7 +614,8 @@ export function init() {
           timeFormat: formatTime(args.data.timeRec),
           resolutions: args.data.resolutions,
           thumb: args.data.thumb,
-          group: args.data.group !== undefined ? args.data.group : draft[idx].group
+          group: args.data.group !== undefined ? args.data.group : draft[idx].group,
+          _recoveryPending: false
         }
         if (args.data.status === 'online' && get(autoRec)) {
           send('rec:auto', { nametag: args.data.nametag, provider: args.provider })

@@ -162,6 +162,7 @@ export function setMaxRecDuration(v) { maxRecDuration.set(v); saveConfig() }
 export function setFfmpegParams(v) { ffmpegParams.set(v); saveConfig() }
 export function setMinimizeToTray(v) { minimizeToTray.set(v); saveConfig() }
 export function setProxyList(v) { proxyList.set(v); saveConfig() }
+export function clearProxyList() { proxyList.set(''); saveConfig() }
 export function setRecFormat(v) { recFormat.set(v); saveConfig() }
 export function setPauseForPrivate(v) { pauseForPrivate.set(v); saveConfig() }
 export function setUserAgent(v) { useragent.set(v); saveConfig() }

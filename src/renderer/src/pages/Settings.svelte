@@ -8,7 +8,7 @@
     setViewMode, setNotifications, setGroupBy,
     pollInterval, setPollInterval, offlinePollInterval, setOfflinePollInterval, maxRecDuration, setMaxRecDuration,
     ffmpegParams, setFfmpegParams, minimizeToTray, setMinimizeToTray,
-    proxyList, selectProxyList,
+    proxyList, selectProxyList, clearProxyList,
     maxproxytry, setMaxProxyTry,
     recFormat, setRecFormat, openSaveFolder,
     pauseForPrivate, setPauseForPrivate,
@@ -153,6 +153,10 @@
                   <option value="mkv">MKV (Recommended)</option>
                   <option value="mp4">MP4</option>
                   <option value="ts">TS</option>
+                  <option value="flv">FLV</option>
+                  <option value="avi">AVI</option>
+                  <option value="mov">MOV</option>
+                  <option value="webm">WebM</option>
                 </select>
               </div>
             </div>
@@ -425,12 +429,23 @@
                 <p class="text-[11px] text-white/40 mb-0.5">Proxy List (.txt)</p>
                 <p class="text-xs text-white/70 truncate">{$proxyList || 'Not set'}</p>
               </div>
-              <button
-                class="px-4 py-2 rounded-full bg-surface-700 hover:bg-surface-600 border border-white/8 text-xs font-medium text-white/70 hover:text-white/90 transition-all cursor-pointer"
-                onclick={selectProxyList}
-              >
-                Select
-              </button>
+              <div class="flex items-center gap-2">
+                {#if $proxyList}
+                  <button
+                    class="px-3 py-2 rounded-full bg-surface-700 hover:bg-red-500/20 border border-white/8 text-xs font-medium text-white/50 hover:text-red-400 transition-all cursor-pointer"
+                    onclick={clearProxyList}
+                    title="Clear proxy list"
+                  >
+                    <XIcon size={14} />
+                  </button>
+                {/if}
+                <button
+                  class="px-4 py-2 rounded-full bg-surface-700 hover:bg-surface-600 border border-white/8 text-xs font-medium text-white/70 hover:text-white/90 transition-all cursor-pointer"
+                  onclick={selectProxyList}
+                >
+                  Select
+                </button>
+              </div>
             </div>
             <!-- Max Proxy Try -->
             <div class="flex items-center gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5">

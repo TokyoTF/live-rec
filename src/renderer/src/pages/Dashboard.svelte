@@ -9,18 +9,62 @@
     providers,
     notify
   } from '@lib/store.js'
-  import { SettingsIcon, LayoutGrid, LayoutList, RefreshCcwIcon, Trash2Icon, ArrowUpDownIcon, Video, Film } from 'lucide-svelte'
+  import { SettingsIcon, LayoutGrid, LayoutList, RefreshCcwIcon, Trash2Icon, ArrowUpDownIcon, Video, Film, Search, X } from 'lucide-svelte'
   import { tooltip } from '@lib/tooltip.js'
+  import { onMount, onDestroy } from 'svelte'
 
   let activeTab = $state('cameras')
   let filter = $state('all')
+  let searchQuery = $state('')
+  let searchInput = $state(null)
+  let searchOpen = $state(false)
+  let searchWrapper = $state(null)
+
+  function toggleSearch() {
+    searchOpen = !searchOpen
+    if (searchOpen) {
+      setTimeout(() => searchInput?.focus(), 50)
+    } else {
+      searchQuery = ''
+    }
+  }
+
+  function handleClickOutside(e) {
+    if (searchOpen && searchWrapper && !searchWrapper.contains(e.target)) {
+      searchOpen = false
+      searchQuery = ''
+    }
+  }
+
+  const handleKeydown = (e) => {
+    if (e.ctrlKey && e.key === 'f') {
+      e.preventDefault()
+      toggleSearch()
+    }
+    if (e.key === 'Escape' && searchOpen) {
+      searchOpen = false
+      searchQuery = ''
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener('keydown', handleKeydown)
+    window.addEventListener('mousedown', handleClickOutside)
+  })
+  onDestroy(() => {
+    window.removeEventListener('keydown', handleKeydown)
+    window.removeEventListener('mousedown', handleClickOutside)
+  })
 
   let filteredRecordings = $derived.by(() => {
-    const recs = $recordings
-    if (filter === 'all') return recs
-    if (filter === 'online') return recs.filter((r) => r.status === 'online')
-    if (filter === 'recording') return recs.filter((r) => r.statusRec)
-    if (filter === 'offline') return recs.filter((r) => r.status === 'offline' || r.status === 'private')
+    let recs = $recordings
+    if (filter === 'online') recs = recs.filter((r) => r.status === 'online')
+    else if (filter === 'recording') recs = recs.filter((r) => r.statusRec)
+    else if (filter === 'offline') recs = recs.filter((r) => r.status === 'offline' || r.status === 'private')
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim()
+      recs = recs.filter((r) => r.nametag?.toLowerCase().includes(q))
+    }
     return recs
   })
 
@@ -65,7 +109,7 @@
   <StatusBar />
 
   <!-- Toolbar -->
-  <div class="flex items-center gap-4 px-4 py-3 border-b border-white/5">
+  <div class="relative flex items-center gap-4 px-4 py-3 border-b border-white/5">
     <!-- Main tabs: Cameras, History -->
     <div class="flex items-center gap-1">
       <button
@@ -101,6 +145,42 @@
         </button>
       {/each}
     </div>
+
+    <!-- Search Button -->
+    {#if activeTab === 'cameras'}
+      <div class="relative" bind:this={searchWrapper}>
+        <button
+          onclick={toggleSearch}
+          class="p-2 transition-all cursor-pointer rounded-full {searchOpen ? 'bg-accent-500/30 text-accent-400' : 'bg-surface-600 hover:bg-surface-600/50 text-[#e3e3e3]'}"
+          use:tooltip={"Search Camera (Ctrl+F)"}
+        >
+          <Search size={16} />
+        </button>
+        {#if searchOpen}
+          <div class="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-50">
+            <div class="w-64 px-3 py-1.5 bg-surface-800 border border-white/10 rounded-full shadow-lg shadow-black/40 flex items-center gap-1.5">
+              <Search size={12} class="text-white/30 shrink-0" />
+              <input
+                bind:this={searchInput}
+                type="text"
+                value={searchQuery}
+                oninput={(e) => searchQuery = e.target.value}
+                placeholder="Search camera..."
+                class="flex-1 bg-transparent text-[11px] text-white/80 placeholder-white/25 outline-none min-w-0"
+              />
+              {#if searchQuery}
+                <button
+                  onclick={() => { searchQuery = ''; searchInput?.focus() }}
+                  class="p-0.5 rounded-full hover:bg-surface-600 text-white/30 hover:text-white/60 transition-colors cursor-pointer shrink-0"
+                >
+                  <X size={10} />
+                </button>
+              {/if}
+            </div>
+          </div>
+        {/if}
+      </div>
+    {/if}
 
     <div class="flex-1"></div>
     <AddLiveModal />
@@ -187,15 +267,19 @@
         {:else if filteredRecordings.length === 0}
           <div class="flex flex-col items-center justify-center h-full gap-3 text-white/30">
             <SettingsIcon size={40} strokeWidth={1} />
-            <p class="text-sm">{filter === 'all' ? 'No cameras added yet' : `No ${filter} cameras`}</p>
-            {#if filter === 'all'}
-              {#if $providers.length === 0}
-                <div class="flex flex-col items-center gap-2 mt-2 px-6 py-4 rounded-2xl bg-accent-500/5 border border-accent-500/10">
-                  <p class="text-xs text-accent-400 font-medium">No extensions installed</p>
-                  <p class="text-[10px] text-white/40 text-center max-w-50">Extensions are required to fetch camera information. Open the extensions menu to download them from GitHub.</p>
-                </div>
-              {:else}
-                <p class="text-xs">Click "Add Live" to get started</p>
+            {#if searchQuery.trim()}
+              <p class="text-sm">No cameras match "{searchQuery}"</p>
+            {:else}
+              <p class="text-sm">{filter === 'all' ? 'No cameras added yet' : `No ${filter} cameras`}</p>
+              {#if filter === 'all'}
+                {#if $providers.length === 0}
+                  <div class="flex flex-col items-center gap-2 mt-2 px-6 py-4 rounded-2xl bg-accent-500/5 border border-accent-500/10">
+                    <p class="text-xs text-accent-400 font-medium">No extensions installed</p>
+                    <p class="text-[10px] text-white/40 text-center max-w-50">Extensions are required to fetch camera information. Open the extensions menu to download them from GitHub.</p>
+                  </div>
+                {:else}
+                  <p class="text-xs">Click "Add Live" to get started</p>
+                {/if}
               {/if}
             {/if}
           </div>

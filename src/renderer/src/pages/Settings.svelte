@@ -6,7 +6,7 @@
     selectFolder, selectFFmpeg, setDateFormat, setAutoRec, setAutoRecMode,
     setAutoCreateFolder, setNasPath, setShowStats,
     setViewMode, setNotifications, setGroupBy,
-    pollInterval, setPollInterval, offlinePollInterval, setOfflinePollInterval, maxRecDuration, setMaxRecDuration,
+    pollInterval, setPollInterval, offlinePollInterval, setOfflinePollInterval, maxRecDuration, setMaxRecDuration, maxRecFileSize, setMaxRecFileSize,
     ffmpegParams, setFfmpegParams, minimizeToTray, setMinimizeToTray,
     proxyList, selectProxyList, clearProxyList,
     maxproxytry, setMaxProxyTry,
@@ -25,7 +25,7 @@
     FolderIcon, FileIcon, ServerIcon, SaveIcon,
     LayoutGrid, LayoutList, Bell, Layers, XIcon,
     CpuIcon, TimerIcon, Minimize2Icon, RefreshCcwIcon, GlobeIcon, UserIcon,
-    GitBranchIcon, CodeIcon, Heart, FileText
+    GitBranchIcon, CodeIcon, Heart, FileText, HardDrive as HardDriveIcon
   } from 'lucide-svelte'
 </script>
 
@@ -488,6 +488,26 @@
                     class="w-24 px-4 py-2 rounded-xl bg-surface-700 border border-surface-600 text-xs text-white/80 outline-none focus:border-red-500 transition-all font-mono"
                   />
                   <p class="text-[10px] text-white/30">Auto-stop recording after this time.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Max File Size -->
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5">
+              <HardDriveIcon size={16} class="text-amber-400 shrink-0" />
+              <div class="flex-1">
+                <p class="text-[11px] text-white/40 mb-1">Max File Size (GB)</p>
+                <div class="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="0 = No limit"
+                    value={$maxRecFileSize || ''}
+                    oninput={(e) => setMaxRecFileSize(parseFloat(e.target.value) || 0)}
+                    class="w-24 px-4 py-2 rounded-xl bg-surface-700 border border-surface-600 text-xs text-white/80 outline-none focus:border-amber-500 transition-all font-mono"
+                  />
+                  <p class="text-[10px] text-white/30">Auto-split recording when file reaches this size.</p>
                 </div>
               </div>
             </div>

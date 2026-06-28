@@ -80,6 +80,7 @@ export const groupBy = writable('none')
 export const pollInterval = writable(70000)
 export const offlinePollInterval = writable(180000)
 export const maxRecDuration = writable(0)
+export const maxRecFileSize = writable(0)
 export const ffmpegParams = writable('')
 export const minimizeToTray = writable(false)
 export const proxyList = writable('')
@@ -129,6 +130,7 @@ export function getGroupBy() { return get(groupBy) }
 export function getPollInterval() { return get(pollInterval) }
 export function getOfflinePollInterval() { return get(offlinePollInterval) }
 export function getMaxRecDuration() { return get(maxRecDuration) }
+export function getMaxRecFileSize() { return get(maxRecFileSize) }
 export function getFfmpegParams() { return get(ffmpegParams) }
 export function getMinimizeToTray() { return get(minimizeToTray) }
 export function getProxyList() { return get(proxyList) }
@@ -159,6 +161,7 @@ export function setGroupBy(v) { groupBy.set(v); saveConfig() }
 export function setPollInterval(v) { pollInterval.set(v); saveConfig() }
 export function setOfflinePollInterval(v) { offlinePollInterval.set(v); saveConfig() }
 export function setMaxRecDuration(v) { maxRecDuration.set(v); saveConfig() }
+export function setMaxRecFileSize(v) { maxRecFileSize.set(v); saveConfig() }
 export function setFfmpegParams(v) { ffmpegParams.set(v); saveConfig() }
 export function setMinimizeToTray(v) { minimizeToTray.set(v); saveConfig() }
 export function setProxyList(v) { proxyList.set(v); saveConfig() }
@@ -197,6 +200,7 @@ export function saveConfig() {
       { name: 'pollinterval', value: get(pollInterval) },
       { name: 'offlinepollinterval', value: get(offlinePollInterval) },
       { name: 'maxrecduration', value: get(maxRecDuration) },
+      { name: 'maxrecfilesize', value: get(maxRecFileSize) },
       { name: 'ffmpegparams', value: get(ffmpegParams) },
       { name: 'minimizetotray', value: get(minimizeToTray) },
       { name: 'proxylist', value: get(proxyList) },
@@ -234,6 +238,27 @@ export function getCurrentStream() { return get(currentStream) }
 export const onlineCount = derived(recordings, $r => $r.filter(r => r.status === 'online').length)
 export const recordingCount = derived(recordings, $r => $r.filter(r => r.statusRec).length)
 export const totalCount = derived(recordings, $r => $r.length)
+
+// Session stats
+export const sessionRecordedToday = derived(recordings, $r => {
+  const today = new Date().toDateString()
+  return $r.filter(r => r.startTime && new Date(r.startTime).toDateString() === today).length
+})
+export const sessionActiveTime = derived(recordings, $r => {
+  const now = Date.now()
+  return $r.reduce((total, r) => {
+    if (!r.statusRec || !r.startTime) return total
+    let elapsed = now - r.startTime - (r.pausedAccumulator || 0)
+    if (r.pausedAt) elapsed -= (now - r.pausedAt)
+    return total + Math.max(0, elapsed)
+  }, 0)
+})
+export const sessionTotalTime = derived(recordingHistory, $h => {
+  const today = new Date().toDateString()
+  return $h
+    .filter(r => r.timestamp && new Date(r.timestamp).toDateString() === today)
+    .reduce((sum, r) => sum + (r.duration || 0), 0)
+})
 
 export function getOnlineCount() { return get(onlineCount) }
 export function getRecordingCount() { return get(recordingCount) }
@@ -470,6 +495,7 @@ export function init() {
       pollInterval.set(args.pollinterval ?? 50000)
       offlinePollInterval.set(args.offlinepollinterval ?? 120000)
       maxRecDuration.set(args.maxrecduration ?? 0)
+      maxRecFileSize.set(args.maxrecfilesize ?? 0)
       ffmpegParams.set(args.ffmpegparams || '')
       minimizeToTray.set(args.minimizetotray ?? false)
       proxyList.set(args.proxylist || '')

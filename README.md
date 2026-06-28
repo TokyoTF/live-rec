@@ -1,4 +1,4 @@
-# Live Rec v2.1.0 🎥 <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="40" align="right"/>
+# Live Rec v2.2.0 🎥 <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="40" align="right"/>
 
 > A powerful, minimalist tool to record live streams from various platforms with ease.
 
@@ -21,6 +21,7 @@
   - Max recording duration limits.
   - System tray support for background operation.
 - 📊 **Recording Stats**: Track recording time, bitrate, and resolution in real-time.
+- 🔄 **Auto Concat**: Automatically merges split segments (from private/public transitions or max file size) into a single file.
 
 ---
 
@@ -29,9 +30,10 @@
 | Site | Status |
 | :--- | :---: |
 | **Bongacams** | ✅ |
+| **Cam4** | ✅ |
+| **Camsoda** | ✅ |
 | **Chaturbate** | ✅ |
 | **Dreamcam** | ❌ |
-| **Cam4** | ✅ |
 | **Stripchat** | ✅ |
 
 ## 🧩 Platform support

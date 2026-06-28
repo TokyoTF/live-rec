@@ -241,7 +241,8 @@ function createWindow() {
       dateformat: 'model-site-dd-MM-yyyy_hh-mm-ss',
       updatetime: 25,
       reclist: [],
-      extbranch: 'main'
+      extbranch: 'main',
+      maxproxytry: 3
     }
     writeFileSync(FolderMain + '/config.json', JSON.stringify(data, null, ' '))
   }

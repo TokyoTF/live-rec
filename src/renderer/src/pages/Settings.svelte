@@ -9,6 +9,7 @@
     pollInterval, setPollInterval, offlinePollInterval, setOfflinePollInterval, maxRecDuration, setMaxRecDuration,
     ffmpegParams, setFfmpegParams, minimizeToTray, setMinimizeToTray,
     proxyList, selectProxyList,
+    maxproxytry, setMaxProxyTry,
     recFormat, setRecFormat, openSaveFolder,
     pauseForPrivate, setPauseForPrivate,
     useragent, setUserAgent,
@@ -430,6 +431,25 @@
               >
                 Select
               </button>
+            </div>
+            <!-- Max Proxy Try -->
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5">
+              <GlobeIcon size={16} class="text-indigo-400 shrink-0" />
+              <div class="flex-1">
+                <p class="text-[11px] text-white/40 mb-1">Max Proxy Try</p>
+                <div class="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    placeholder="3"
+                    value={$maxproxytry || 3}
+                    oninput={(e) => setMaxProxyTry(parseInt(e.target.value) || 3)}
+                    class="w-24 px-4 py-2 rounded-xl bg-surface-700 border border-surface-600 text-xs text-white/80 outline-none focus:border-indigo-500 transition-all font-mono"
+                  />
+                  <p class="text-[10px] text-white/30">Number of proxies to try before giving up.</p>
+                </div>
+              </div>
             </div>
           </div>
         </section>

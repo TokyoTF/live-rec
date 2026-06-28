@@ -88,6 +88,7 @@ export const pauseForPrivate = writable(true)
 export const useragent = writable('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0')
 export const recQuality = writable('best')
 export const extBranch = writable('main')
+export const maxproxytry = writable(3)
 export const providers = writable([])
 
 export const recordingHistory = writable([])
@@ -137,6 +138,7 @@ export function getPauseForPrivate() { return get(pauseForPrivate) }
 export function getUserAgent() { return get(useragent) }
 export function getRecQuality() { return get(recQuality) }
 export function getExtBranch() { return get(extBranch) }
+export function getMaxProxyTry() { return get(maxproxytry) }
 export function getProviders() { return get(providers) }
 
 export const isDevMode = derived(devmode, $d => $d)
@@ -165,6 +167,7 @@ export function setPauseForPrivate(v) { pauseForPrivate.set(v); saveConfig() }
 export function setUserAgent(v) { useragent.set(v); saveConfig() }
 export function setRecQuality(v) { recQuality.set(v); saveConfig() }
 export function setExtBranch(v) { extBranch.set(v); saveConfig() }
+export function setMaxProxyTry(v) { maxproxytry.set(v); saveConfig() }
 
 // Config Methods
 export function selectFolder() { send('Select:Folder', { type: 'folder' }) }
@@ -201,6 +204,7 @@ export function saveConfig() {
       { name: 'useragent', value: get(useragent) },
       { name: 'recquality', value: get(recQuality) },
       { name: 'extbranch', value: get(extBranch) },
+      { name: 'maxproxytry', value: get(maxproxytry) },
       { name: 'devmode', value: get(devmode) },
       { name: 'recordinghistory', value: get(recordingHistory) },
       { name: 'reclist', value: get(reclist) }
@@ -473,6 +477,7 @@ export function init() {
       useragent.set(args.useragent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0')
       recQuality.set(args.recquality || 'best')
       extBranch.set(args.extbranch || 'main')
+      maxproxytry.set(args.maxproxytry ?? 3)
       devmode.set(args.devmode ?? false)
       isDev.set(args.isDev ?? false)
       providers.set(args.providers || [])

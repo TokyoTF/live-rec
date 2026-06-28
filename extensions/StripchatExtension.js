@@ -13,7 +13,6 @@ export default class StripchatExtension {
         'https://*.doppiocdn.com/*',
         'https://*.sacdnssedge.com/*'
       ],
-      force_type:'application/x-mpegurl',
       version: '1.0.1'
     }
     this.extension = new ExtensionExtra(this.config)
@@ -99,7 +98,8 @@ export default class StripchatExtension {
       status,
       url: blob,
       resolutions,
-      thumb
+      thumb,
+      force_type:'video/x-mpegUrl'
     })
   }
 

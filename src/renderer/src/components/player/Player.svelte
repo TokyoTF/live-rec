@@ -1,5 +1,5 @@
 <script>
-  import { currentStream, recordings, showStats } from '@lib/store.js'
+  import { currentStream, recordings } from '@lib/store.js'
   import { onMount, onDestroy } from 'svelte'
 
   import 'vidstack/bundle'
@@ -172,29 +172,6 @@
       </media-player>
     {/key}
 
-    <!-- Stats Overlay -->
-    {#if $showStats && currentRec?.statusRec && (currentRec.codec || currentRec.stats)}
-      <div
-        class="mt-2 p-2 rounded-lg bg-surface-900/50 backdrop-blur-md border border-white/5 text-[10px] text-white/80 font-mono space-y-1 transition-opacity"
-      >
-        {#if currentRec.codec}
-          <div class="flex justify-between gap-4">
-            <span class="text-white/40">CODEC</span>
-            <span class="truncate">{currentRec.codec.video}</span>
-          </div>
-        {/if}
-        {#if currentRec.stats}
-          <div class="flex justify-between gap-4">
-            <span class="text-white/40">BITRATE</span>
-            <span>{currentRec.stats.currentKbps} kbps</span>
-          </div>
-          <div class="flex justify-between gap-4">
-            <span class="text-white/40">FPS</span>
-            <span>{currentRec.stats.currentFps}</span>
-          </div>
-        {/if}
-      </div>
-    {/if}
   </div>
 </div>
 

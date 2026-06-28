@@ -1,6 +1,6 @@
 <script>
-  import { PlayIcon, XIcon, Heart } from 'lucide-svelte'
-  import { PROVIDER_COLORS, selectStream, removeRecording, startRec, stopRec, viewMode, autoRec, autoRecMode, reclist } from '@lib/store.js'
+  import { PlayIcon, XIcon, Heart, Activity } from 'lucide-svelte'
+  import { PROVIDER_COLORS, selectStream, removeRecording, startRec, stopRec, viewMode, autoRec, autoRecMode, reclist, showStats } from '@lib/store.js'
   import { send } from '@lib/ipc.js'
 
   let {
@@ -12,7 +12,9 @@
     paused,
     resolutions,
     timeRec,
-    recoveryPending
+    recoveryPending,
+    codec,
+    stats
   } = $props()
 
   let localRecUrl = $state('')
@@ -52,7 +54,7 @@
   }
 </script>
 
-<div class="group relative bg-surface-800 border border-surface-600 overflow-hidden transition-all duration-300 {$viewMode === 'grid' ? 'rounded-xl' : 'flex items-center p-2 gap-3 rounded-xl'}">
+<div class="group relative bg-surface-800 border border-surface-600 transition-all duration-300 {$viewMode === 'grid' ? 'rounded-xl' : 'flex items-center p-2 gap-3 rounded-xl'}">
 
   <!-- Thumbnail -->
   <div class="relative overflow-hidden bg-surface-900 shrink-0 {$viewMode === 'grid' ? 'aspect-video w-full' : 'w-24 h-14 rounded-lg' }">
@@ -111,6 +113,22 @@
 
       {#if $viewMode === 'list' && statusRec}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 ml-2">
+          {#if $showStats && (codec || stats)}
+            <div class="relative inline-flex">
+              <div class="p-0.5 rounded-md hover:bg-surface-600 text-white/40 hover:text-white/70 transition-colors cursor-default">
+                <Activity size={12} />
+              </div>
+              <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 rounded-lg bg-surface-900 border border-white/10 shadow-xl shadow-black/50 text-[9px] font-mono text-white/80 space-y-0.5 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
+                {#if codec}
+                  <div><span class="text-white/40">Codec:</span> {codec.video}</div>
+                {/if}
+                {#if stats}
+                  <div><span class="text-white/40">Bitrate:</span> {stats.currentKbps} kbps</div>
+                  <div><span class="text-white/40">FPS:</span> {stats.currentFps}</div>
+                {/if}
+              </div>
+            </div>
+          {/if}
           <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording'}"></span>
           {timeRec || '0 s'}{paused ? ' - paused' : ''}
         </div>
@@ -149,6 +167,22 @@
 
       {#if (statusRec || paused) && $viewMode === 'grid'}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 mt-1">
+          {#if $showStats && (codec || stats)}
+            <div class="group/stats relative inline-flex">
+              <div class="p-0.5 rounded-md hover:bg-surface-600 text-white/40 hover:text-white/70 transition-colors cursor-default">
+                <Activity size={12} />
+              </div>
+              <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 rounded-lg bg-surface-900 border border-white/10 shadow-xl shadow-black/50 text-[9px] font-mono text-white/80 space-y-0.5 opacity-0 pointer-events-none group-hover/stats:opacity-100 transition-opacity z-50 whitespace-nowrap">
+                {#if codec}
+                  <div><span class="text-white/40">Codec:</span> {codec.video}</div>
+                {/if}
+                {#if stats}
+                  <div><span class="text-white/40">Bitrate:</span> {stats.currentKbps} kbps</div>
+                  <div><span class="text-white/40">FPS:</span> {stats.currentFps}</div>
+                {/if}
+              </div>
+            </div>
+          {/if}
           <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording pulse-recording'}"></span>
           {timeRec || '0 s'}{paused ? ' - paused' : ''}
         </div>

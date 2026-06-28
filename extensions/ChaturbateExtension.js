@@ -11,7 +11,7 @@ export default class ChaturbateExtension {
       referer: true,
       get_url_new: true,
       patterns: ['https://*.chaturbate.com/*', 'https://*.mmcdn.com/*'],
-      version: '3.1.0'
+      version: '2.1.0'
     }
     this.extension = new ExtensionExtra(this.config)
     this.status_types = this.extension.status_types

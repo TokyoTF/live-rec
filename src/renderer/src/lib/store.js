@@ -352,6 +352,15 @@ export function removeOfflineRecordings() {
 }
 
 export function startRec(nametag, provider, url, resolution,selresolution) {
+  recordings.update(r => {
+    const idx = r.findIndex(i => i.nametag === nametag && i.provider === provider)
+    if (idx !== -1) {
+      const draft = [...r]
+      draft[idx] = { ...draft[idx], statusRec: true, paused: false, timeRec: 0, timeFormat: '0 s' }
+      return draft
+    }
+    return r
+  })
   send('rec:live:status', {
     status: 'online',
     nametag,

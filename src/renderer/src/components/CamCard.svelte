@@ -2,7 +2,7 @@
   import { PlayIcon, XIcon, Heart, Activity, Tag } from 'lucide-svelte'
   import { PROVIDER_COLORS, selectStream, removeRecording, startRec, stopRec, viewMode, autoRec, autoRecMode, reclist, showStats, showTags, updateTags } from '@lib/store.js'
   import { send } from '@lib/ipc.js'
-  import { onMount, onDestroy } from 'svelte'
+  import { onMount, onDestroy, tick } from 'svelte'
 
   let {
     status,
@@ -29,6 +29,25 @@
   let tagWrapper = $state(null)
 
   let isFavorite = $derived($reclist.some(r => r.nametag === nametag && r.provider === provider && r.favorite === true))
+  let statsPos = $state({ show: false, above: true, x: 0, y: 0 })
+  let statsTipEl = $state(null)
+
+  function checkStatsPosition(e) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const above = rect.top > 120
+    const y = above ? rect.top - 6 : rect.bottom + 6
+    statsPos = { show: true, above, x: rect.left + rect.width / 2, y }
+    tick().then(() => {
+      if (!statsTipEl) return
+      const tipW = statsTipEl.offsetWidth
+      const clampedX = Math.min(Math.max(rect.left + rect.width / 2, tipW / 2 + 8), window.innerWidth - tipW / 2 - 8)
+      if (clampedX !== statsPos.x) statsPos = { ...statsPos, x: clampedX }
+    })
+  }
+
+  function hideStats() {
+    statsPos = { ...statsPos, show: false }
+  }
 
   function handleTagOutside(e) {
     if (showTagInput && tagWrapper && !tagWrapper.contains(e.target)) {
@@ -169,12 +188,13 @@
 
       {#if $viewMode === 'list' && statusRec}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 ml-2">
-          {#if $showStats && (codec || stats)}
-            <div class="relative inline-flex">
+          {#if $showStats}
+            <div class="relative inline-flex" onmouseenter={checkStatsPosition} onmouseleave={hideStats}>
               <div class="p-0.5 rounded-md hover:bg-surface-600 text-white/40 hover:text-white/70 transition-colors cursor-default">
                 <Activity size={12} />
               </div>
-              <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 rounded-lg bg-surface-900 border border-white/10 shadow-xl shadow-black/50 text-[9px] font-mono text-white/80 space-y-0.5 opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 whitespace-nowrap">
+              {#if statsPos.show}
+                <div bind:this={statsTipEl} class="fixed px-2.5 py-1.5 rounded-lg bg-surface-900 border border-white/10 shadow-xl shadow-black/50 text-[9px] font-mono text-white/80 space-y-0.5 z-50 whitespace-nowrap pointer-events-none" style="left:{statsPos.x}px;top:{statsPos.y}px;transform:translateX(-50%)">
                 {#if codec}
                   <div><span class="text-white/40">Codec:</span> {codec.video}</div>
                 {/if}
@@ -192,6 +212,7 @@
                   <div class="mt-1 pt-1 border-t border-white/10"><span class="text-white/40">Path:</span> <span class="text-[10px] break-all">{outputPath}</span></div>
                 {/if}
               </div>
+              {/if}
             </div>
           {/if}
           <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording'}"></span>
@@ -232,12 +253,13 @@
 
       {#if (statusRec || paused) && $viewMode === 'grid'}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 mt-1">
-          {#if $showStats && (codec || stats)}
-            <div class="group/stats relative inline-flex">
+          {#if $showStats}
+            <div class="relative inline-flex" onmouseenter={checkStatsPosition} onmouseleave={hideStats}>
               <div class="p-0.5 rounded-md hover:bg-surface-600 text-white/40 hover:text-white/70 transition-colors cursor-default">
                 <Activity size={12} />
               </div>
-              <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2.5 py-1.5 rounded-lg bg-surface-900 border border-white/10 shadow-xl shadow-black/50 text-[9px] font-mono text-white/80 space-y-0.5 opacity-0 pointer-events-none group-hover/stats:opacity-100 transition-opacity z-50 whitespace-nowrap">
+              {#if statsPos.show}
+                <div bind:this={statsTipEl} class="fixed px-2.5 py-1.5 rounded-lg bg-surface-900 border border-white/10 shadow-xl shadow-black/50 text-[9px] font-mono text-white/80 space-y-0.5 z-50 whitespace-nowrap pointer-events-none" style="left:{statsPos.x}px;top:{statsPos.y}px;transform:translateX(-50%)">
                 {#if codec}
                   <div><span class="text-white/40">Codec:</span> {codec.video}</div>
                 {/if}
@@ -255,6 +277,7 @@
                   <div class="mt-1 pt-1 border-t border-white/10"><span class="text-white/40">Path:</span> <span class="text-[10px] break-all">{outputPath}</span></div>
                 {/if}
               </div>
+              {/if}
             </div>
           {/if}
           <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording pulse-recording'}"></span>

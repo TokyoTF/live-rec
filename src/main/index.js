@@ -26,11 +26,13 @@ import {
 } from 'node:fs'
 import { pathToFileURL } from 'url'
 import SiteExtra from '../../lib/SiteExtra.js'
+import CamsodaProxy from '../../lib/camsodaProxy.class.js'
 import Logger from '../../lib/logger.class.js'
 
 const FolderMain = resolve(process.env.USERPROFILE, 'Documents', 'live-rec')
 const UserExtensionsDir = join(FolderMain, 'extensions')
 const tool = new WarpClass()
+let camsodaProxy = null
 
 WarpClass.setErrorCallback((err) => {
   const mainWin = BrowserWindow.getAllWindows()[0]
@@ -263,6 +265,8 @@ function createWindow() {
   }
 }
 
+app.commandLine.appendSwitch('log-level', '3')
+
 app.whenReady().then(async () => {
   await loadExtensions()
   setupRequestRules()
@@ -462,12 +466,12 @@ app.whenReady().then(async () => {
         event.reply('rec:live:status', {
           nametag: args.nametag,
           provider: args.provider,
-          status: rec.statusRec || false,
+          status: rec.recording || rec.paused || false,
           paused: rec.paused || false,
           realtime: rec.realtime || false,
           codec: rec.codec || null,
           stats: rec.stats || null,
-          timeRec: rec.timeRec,
+          timeRec: tool.getRecTime(rec),
           outputPath: rec.outputPath || null,
           url: rec.url || null,
           selresolution: rec.selresolution || null,
@@ -511,7 +515,13 @@ app.whenReady().then(async () => {
             url = fresh.url
           }
         }
-        // Get referer from site config
+        if (args.provider === 'camsoda' && url) {
+          if (!camsodaProxy) camsodaProxy = new CamsodaProxy()
+          await camsodaProxy.start()
+          url = camsodaProxy.proxyUrl(url)
+          Logger.info('camsoda proxied url', url)
+        }
+        // Get referer and cookies from site config
         if (instance && instance.config.domain) {
           referer = `https://${instance.config.domain}/`
         }
@@ -529,7 +539,9 @@ app.whenReady().then(async () => {
         args.resolution,
         args.selresolution,
         ffmpegparams,
-        referer
+        referer,
+        true,
+        args.cookies
       )
       event.reply('rec:live:status', {
         nametag: args.nametag,
@@ -539,7 +551,12 @@ app.whenReady().then(async () => {
         realtime: rec?.realtime || false,
         codec: rec?.codec || null,
         stats: rec?.stats || null,
-        timeRec: rec ? tool.getRecTime(rec) : 0
+        timeRec: rec ? tool.getRecTime(rec) : 0,
+        outputPath: rec?.outputPath || null,
+        url: rec?.url || null,
+        selresolution: rec?.selresolution || null,
+        provider_: rec?.provider || args.provider,
+        files: rec?.files || []
       })
     } catch (err) {
       Logger.error(`rec:live:status error (${args.nametag}):`, err.message)

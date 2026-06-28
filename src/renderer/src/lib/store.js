@@ -71,6 +71,7 @@ export const autoRecMode = writable('all')
 export const reclist = writable([])
 export const autoCreateFolder = writable(false)
 export const showStats = writable(false)
+export const showTags = writable(false)
 export const viewMode = writable('grid')
 export const notifications = writable(true)
 export const theme = writable('dark')
@@ -124,6 +125,7 @@ export function getRecList() { return get(reclist) }
 export function setRecList(v) { reclist.set(v); saveConfig() }
 export function getAutoCreateFolder() { return get(autoCreateFolder) }
 export function getShowStats() { return get(showStats) }
+export function getShowTags() { return get(showTags) }
 export function getViewMode() { return get(viewMode) }
 export function getNotifications() { return get(notifications) }
 export function getGroupBy() { return get(groupBy) }
@@ -155,6 +157,7 @@ export function setAutoRecMode(v) { autoRecMode.set(v); saveConfig() }
 export function setAutoCreateFolder(v) { autoCreateFolder.set(v); saveConfig() }
 export function setNasPath(v) { nasPath.set(v); saveConfig() }
 export function setShowStats(v) { showStats.set(v); saveConfig() }
+export function setShowTags(v) { showTags.set(v); saveConfig() }
 export function setViewMode(v) { viewMode.set(v); saveConfig() }
 export function setNotifications(v) { notifications.set(v); saveConfig() }
 export function setGroupBy(v) { groupBy.set(v); saveConfig() }
@@ -193,6 +196,7 @@ export function saveConfig() {
       { name: 'naspath', value: get(nasPath) },
       { name: 'autocreatefolder', value: get(autoCreateFolder) },
       { name: 'showstats', value: get(showStats) },
+      { name: 'showtags', value: get(showTags) },
       { name: 'viewmode', value: get(viewMode) },
       { name: 'notifications', value: get(notifications) },
       { name: 'theme', value: get(theme) },
@@ -240,9 +244,9 @@ export const recordingCount = derived(recordings, $r => $r.filter(r => r.statusR
 export const totalCount = derived(recordings, $r => $r.length)
 
 // Session stats
-export const sessionRecordedToday = derived(recordings, $r => {
+export const sessionRecordedToday = derived(recordingHistory, $h => {
   const today = new Date().toDateString()
-  return $r.filter(r => r.startTime && new Date(r.startTime).toDateString() === today).length
+  return $h.filter(r => r.timestamp && new Date(r.timestamp).toDateString() === today).length
 })
 export const sessionActiveTime = derived(recordings, $r => {
   const now = Date.now()
@@ -293,13 +297,14 @@ export function addRecording(provider, nametag, group = '') {
     nametag,
     provider,
     group,
+    tags: [],
     status: 'loading',
     statusRec: false,
     timeRec: 0,
     timeFormat: '0 s'
   }])
 
-  reclist.update(r => [...r, { nametag, provider, group, favorite: false }])
+  reclist.update(r => [...r, { nametag, provider, group, favorite: false, tags: [] }])
   send('Modify:config', { name: 'reclist', value: { nametag, provider, group } })
   send('rec:add', { name: nametag, provider })
   return true
@@ -318,6 +323,28 @@ export function removeRecording(nametag, provider) {
 
   send('rec:live:remove', { nametag, provider })
 }
+
+export function updateTags(nametag, provider, tags) {
+  recordings.update(r => {
+    const draft = [...r]
+    const idx = draft.findIndex(n => n.nametag === nametag && n.provider === provider)
+    if (idx !== -1) draft[idx] = { ...draft[idx], tags }
+    return draft
+  })
+  reclist.update(r => {
+    const draft = [...r]
+    const idx = draft.findIndex(n => n.nametag === nametag && n.provider === provider)
+    if (idx !== -1) draft[idx] = { ...draft[idx], tags }
+    return draft
+  })
+  send('Modify:config', { name: 'reclist', value: get(reclist) })
+}
+
+export const allTags = derived(recordings, $r => {
+  const tagSet = new Set()
+  $r.forEach(r => (r.tags || []).forEach(t => tagSet.add(t)))
+  return [...tagSet].sort()
+})
 
 export function removeOfflineRecordings() {
   const offline = get(recordings).filter(r => r.status === 'offline' || r.status === 'private')
@@ -488,6 +515,7 @@ export function init() {
       autoRecMode.set(args.autorecmode || 'all')
       autoCreateFolder.set(args.autocreatefolder ?? false)
       showStats.set(args.showstats ?? false)
+      showTags.set(args.showtags ?? false)
       viewMode.set(args.viewmode || 'grid')
       notifications.set(args.notifications ?? true)
       theme.set(args.theme || 'dark')
@@ -583,7 +611,12 @@ export function init() {
             codec: args.codec,
             stats: args.stats,
             timeRec: newTimeRec,
-            timeFormat: isRecording ? (args.timeRec ? formatTime(args.timeRec) : draft[idx].timeFormat || '0 s') : '0 s'
+            timeFormat: isRecording ? (args.timeRec ? formatTime(args.timeRec) : draft[idx].timeFormat || '0 s') : '0 s',
+            outputPath: args.outputPath || draft[idx].outputPath || null,
+            recUrl: args.url || draft[idx].recUrl || null,
+            recResolution: args.selresolution || draft[idx].recResolution || null,
+            recProvider: args.provider_ || draft[idx].recProvider || null,
+            recFiles: args.files || draft[idx].recFiles || []
           }
           return draft
         })
@@ -743,6 +776,7 @@ export function loadFromConfig(reclist) {
     nametag: item.nametag,
     provider: item.provider,
     group: item.group || '',
+    tags: item.tags || [],
     status: 'loading',
     statusRec: false,
     timeRec: 0,

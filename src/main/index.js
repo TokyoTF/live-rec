@@ -462,12 +462,17 @@ app.whenReady().then(async () => {
         event.reply('rec:live:status', {
           nametag: args.nametag,
           provider: args.provider,
-          status: rec.recording || rec.paused || false,
+          status: rec.statusRec || false,
           paused: rec.paused || false,
           realtime: rec.realtime || false,
           codec: rec.codec || null,
           stats: rec.stats || null,
-          timeRec: tool.getRecTime(rec)
+          timeRec: rec.timeRec,
+          outputPath: rec.outputPath || null,
+          url: rec.url || null,
+          selresolution: rec.selresolution || null,
+          provider_: rec.provider || args.provider,
+          files: rec.files || []
         })
       }
 

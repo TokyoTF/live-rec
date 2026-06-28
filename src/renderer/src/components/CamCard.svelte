@@ -1,7 +1,8 @@
 <script>
-  import { PlayIcon, XIcon, Heart, Activity } from 'lucide-svelte'
-  import { PROVIDER_COLORS, selectStream, removeRecording, startRec, stopRec, viewMode, autoRec, autoRecMode, reclist, showStats } from '@lib/store.js'
+  import { PlayIcon, XIcon, Heart, Activity, Tag } from 'lucide-svelte'
+  import { PROVIDER_COLORS, selectStream, removeRecording, startRec, stopRec, viewMode, autoRec, autoRecMode, reclist, showStats, showTags, updateTags } from '@lib/store.js'
   import { send } from '@lib/ipc.js'
+  import { onMount, onDestroy } from 'svelte'
 
   let {
     status,
@@ -14,12 +15,26 @@
     timeRec,
     recoveryPending,
     codec,
-    stats
+    stats,
+    tags = [],
+    outputPath,
+    recUrl,
+    recResolution,
+    recProvider
   } = $props()
 
   let localRecUrl = $state('')
+  let tagInput = $state('')
+  let showTagInput = $state(false)
+  let tagWrapper = $state(null)
 
   let isFavorite = $derived($reclist.some(r => r.nametag === nametag && r.provider === provider && r.favorite === true))
+
+  function handleTagOutside(e) {
+    if (showTagInput && tagWrapper && !tagWrapper.contains(e.target)) {
+      showTagInput = false
+    }
+  }
 
   function handlePlayClick() {
     selectStream(provider, nametag, localRecUrl)
@@ -27,9 +42,8 @@
 
   function handleRecToggle() {
     if (!statusRec && !paused) {
-      const url = localRecUrl || resolutions?.[0]?.url || ''
-
-      startRec(nametag, provider, url, resolutions,localRecUrl)
+      const recUrl = localRecUrl || resolutions?.[0]?.url || ''
+      startRec(nametag, provider, recUrl, resolutions, localRecUrl)
     } else {
       stopRec(nametag, provider, resolutions)
     }
@@ -52,16 +66,34 @@
       send('Modify:config', { name: 'reclistupdate', value: $reclist[index] })
     }
   }
+
+  function addTag(e) {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      const newTag = tagInput.trim().toLowerCase()
+      if (!tags.includes(newTag)) {
+        const newTags = [...tags, newTag]
+        updateTags(nametag, provider, newTags)
+      }
+      tagInput = ''
+    }
+  }
+
+  function removeTag(tag) {
+    updateTags(nametag, provider, tags.filter(t => t !== tag))
+  }
+
+  onMount(() => { window.addEventListener('mousedown', handleTagOutside) })
+  onDestroy(() => { window.removeEventListener('mousedown', handleTagOutside) })
 </script>
 
 <div class="group relative bg-surface-800 border border-surface-600 transition-all duration-300 {$viewMode === 'grid' ? 'rounded-xl' : 'flex items-center p-2 gap-3 rounded-xl'}">
 
   <!-- Thumbnail -->
-  <div class="relative overflow-hidden bg-surface-900 shrink-0 {$viewMode === 'grid' ? 'aspect-video w-full' : 'w-24 h-14 rounded-lg' }">
+  <div class="relative overflow-hidden bg-surface-900 shrink-0 {$viewMode === 'grid' ? 'aspect-video w-full rounded-t-xl' : 'w-24 h-14 rounded-lg' }">
     <img
       src={thumb || 'https://www.camsoda.com/assets/img/missing-img.jpg'}
       alt={nametag}
-      class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+      class="w-full h-full object-cover transition-transform rounded-t-xl duration-500 group-hover:scale-105"
     />
     <div class="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
 
@@ -111,6 +143,30 @@
           />
         </button>
 
+        {#if $showTags}
+        <div class="relative" bind:this={tagWrapper}>
+          <button
+            class="p-1 rounded-full hover:bg-surface-600 transition-all cursor-pointer"
+            onclick={() => showTagInput = !showTagInput}
+          >
+            <Tag size={14} class="{tags.length > 0 ? 'text-accent-400' : 'text-white/40 hover:text-white/70'}" />
+          </button>
+          {#if showTagInput}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div class="absolute top-full right-0 mt-1 p-2 bg-surface-900 border border-white/10 rounded-lg shadow-xl z-50 min-w-36" onclick={(e) => e.stopPropagation()}>
+              <input
+                type="text"
+                value={tagInput}
+                oninput={(e) => tagInput = e.target.value}
+                onkeydown={addTag}
+                placeholder="Add tag..."
+                class="w-full px-2 py-1 bg-surface-700 border border-white/10 rounded-md text-[11px] text-white/80 placeholder-white/25 outline-none focus:border-accent-500/50"
+              />
+            </div>
+          {/if}
+        </div>
+        {/if}
+
       {#if $viewMode === 'list' && statusRec}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 ml-2">
           {#if $showStats && (codec || stats)}
@@ -125,6 +181,15 @@
                 {#if stats}
                   <div><span class="text-white/40">Bitrate:</span> {stats.currentKbps} kbps</div>
                   <div><span class="text-white/40">FPS:</span> {stats.currentFps}</div>
+                {/if}
+                {#if recResolution}
+                  <div><span class="text-white/40">Resolución:</span> {recResolution}</div>
+                {/if}
+                {#if recProvider}
+                  <div><span class="text-white/40">Provider:</span> {recProvider}</div>
+                {/if}
+                {#if outputPath}
+                  <div class="mt-1 pt-1 border-t border-white/10"><span class="text-white/40">Path:</span> <span class="text-[10px] break-all">{outputPath}</span></div>
                 {/if}
               </div>
             </div>
@@ -180,6 +245,15 @@
                   <div><span class="text-white/40">Bitrate:</span> {stats.currentKbps} kbps</div>
                   <div><span class="text-white/40">FPS:</span> {stats.currentFps}</div>
                 {/if}
+                {#if recResolution}
+                  <div><span class="text-white/40">Resolución:</span> {recResolution}</div>
+                {/if}
+                {#if recProvider}
+                  <div><span class="text-white/40">Provider:</span> {recProvider}</div>
+                {/if}
+                {#if outputPath}
+                  <div class="mt-1 pt-1 border-t border-white/10"><span class="text-white/40">Path:</span> <span class="text-[10px] break-all">{outputPath}</span></div>
+                {/if}
               </div>
             </div>
           {/if}
@@ -187,6 +261,18 @@
           {timeRec || '0 s'}{paused ? ' - paused' : ''}
         </div>
       {/if}
+    {/if}
+
+    <!-- Tags Section -->
+    {#if $showTags && tags.length > 0}
+      <div class="flex flex-wrap gap-1 {$viewMode === 'grid' ? 'px-3 pb-2' : 'ml-2 mt-1'}">
+        {#each tags as tag}
+          <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-surface-700/80 border border-white/5 rounded-md text-[9px] text-white/50">
+            #{tag}
+            <button onclick={() => removeTag(tag)} class="hover:text-red-400 cursor-pointer"><XIcon size={8} /></button>
+          </span>
+        {/each}
+      </div>
     {/if}
 
     <!-- Remove button (List view only, always visible) -->

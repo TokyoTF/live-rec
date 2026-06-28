@@ -7,9 +7,9 @@
     recordings, isLoaded, removeOfflineRecordings, updateAllStatus, orderByStatus, setOrderByStatus,
     viewMode, setViewMode, groupBy,
     providers,
-    notify
+    notify, allTags, showTags
   } from '@lib/store.js'
-  import { SettingsIcon, LayoutGrid, LayoutList, RefreshCcwIcon, Trash2Icon, ArrowUpDownIcon, Video, Film, Search, X } from 'lucide-svelte'
+  import { SettingsIcon, LayoutGrid, LayoutList, RefreshCcwIcon, Trash2Icon, ArrowUpDownIcon, Video, Film, Search, X, Tag } from 'lucide-svelte'
   import { tooltip } from '@lib/tooltip.js'
   import { onMount, onDestroy } from 'svelte'
 
@@ -18,6 +18,7 @@
   let searchQuery = $state('')
   let searchInput = $state(null)
   let searchOpen = $state(false)
+  let tagFilter = $state('')
   let searchWrapper = $state(null)
 
   function toggleSearch() {
@@ -64,6 +65,9 @@
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim()
       recs = recs.filter((r) => r.nametag?.toLowerCase().includes(q))
+    }
+    if (tagFilter) {
+      recs = recs.filter((r) => (r.tags || []).includes(tagFilter))
     }
     return recs
   })
@@ -231,6 +235,22 @@
     </div>
   </div>
 
+  <!-- Tag Filter Row -->
+  {#if activeTab === 'cameras' && $showTags && $allTags.length > 0}
+    <div class="flex items-center gap-1.5 px-4 py-1.5 border-white/5">
+      {#each $allTags as t}
+        <button
+          class="px-2 py-0.5 text-[10px] font-medium rounded-full transition-all cursor-pointer {tagFilter === t
+            ? 'bg-accent-500/30 text-accent-400 border border-accent-500/30'
+            : 'bg-surface-700 text-white/50 hover:text-white/70 border border-white/5'}"
+          onclick={() => tagFilter = tagFilter === t ? '' : t}
+        >
+          {t}
+        </button>
+      {/each}
+    </div>
+  {/if}
+
   {#snippet camGrid(items)}
     <div class={$viewMode === 'grid'
       ? "grid grid-cols-[repeat(auto-fill,minmax(230px,1fr))] gap-3"
@@ -249,6 +269,11 @@
             codec={item.codec}
             stats={item.stats}
             recoveryPending={item._recoveryPending}
+            tags={item.tags || []}
+            outputPath={item.outputPath}
+            recUrl={item.recUrl}
+            recResolution={item.recResolution}
+            recProvider={item.recProvider}
           />
         {/if}
       {/each}

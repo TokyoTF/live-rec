@@ -1,10 +1,10 @@
 <script>
   import {
     ffmpegPath, saveFolder, nasPath, dateFormat,
-    autoRec, autoRecMode, autoCreateFolder, effectiveSavePath, showStats,
+    autoRec, autoRecMode, autoCreateFolder, effectiveSavePath, showStats, showTags,
     viewMode, notifications, groupBy,
     selectFolder, selectFFmpeg, setDateFormat, setAutoRec, setAutoRecMode,
-    setAutoCreateFolder, setNasPath, setShowStats,
+    setAutoCreateFolder, setNasPath, setShowStats, setShowTags,
     setViewMode, setNotifications, setGroupBy,
     pollInterval, setPollInterval, offlinePollInterval, setOfflinePollInterval, maxRecDuration, setMaxRecDuration, maxRecFileSize, setMaxRecFileSize,
     ffmpegParams, setFfmpegParams, minimizeToTray, setMinimizeToTray,
@@ -269,6 +269,21 @@
                     type="checkbox"
                     checked={$showStats}
                     onchange={(e) => setShowStats(e.target.checked)}
+                  />
+                  <span class="slider"></span>
+                </div>
+              </label>
+
+              <label class="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5 cursor-pointer group hover:bg-surface-700/50 transition-all">
+                <div>
+                  <p class="text-xs text-white/70 group-hover:text-white/90 transition-colors">Show Tags</p>
+                  <p class="text-[10px] text-white/30">Display custom tags on cameras</p>
+                </div>
+                <div class="switch">
+                  <input
+                    type="checkbox"
+                    checked={$showTags}
+                    onchange={(e) => setShowTags(e.target.checked)}
                   />
                   <span class="slider"></span>
                 </div>

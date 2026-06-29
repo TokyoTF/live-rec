@@ -1,6 +1,6 @@
 <script>
   import { recordingHistory, recordings, sessionRecordedToday, sessionTotalTime, sessionActiveTime, totalRecordingSize, onlineCount, recordingCount, totalCount, getProviderColor } from '@lib/store.js'
-  import { BarChart3, Clock, HardDrive, Film, Activity, Globe, Heart, Database } from 'lucide-svelte'
+  import { BarChart3, Clock, HardDrive, Film, Activity, Globe, Heart, Database, User } from 'lucide-svelte'
 
   function formatDuration(ms) {
     if (!ms || ms <= 0) return '0s'
@@ -59,6 +59,16 @@
   let totalDataRecorded = $derived(
     $recordingHistory.reduce((sum, r) => sum + (r.fileSize || 0), 0)
   )
+
+  let modelStats = $derived(() => {
+    const stats = {}
+    for (const r of $recordingHistory) {
+      if (!stats[r.nametag]) stats[r.nametag] = { count: 0, duration: 0, provider: r.provider }
+      stats[r.nametag].count++
+      stats[r.nametag].duration += r.duration || 0
+    }
+    return Object.entries(stats).sort((a, b) => b[1].count - a[1].count)
+  })
 </script>
 
 <div class="flex-1 overflow-y-auto p-4 space-y-4">
@@ -186,6 +196,48 @@
               <span class="text-xs font-bold text-white">{stats.count}</span>
               <span class="text-[10px] text-white/40"> recordings</span>
               <span class="text-[10px] text-white/30 ml-2">{formatDuration(stats.duration)}</span>
+            </div>
+          </div>
+        {/each}
+      </div>
+    </div>
+  {/if}
+
+  <!-- Model List -->
+  {#if modelStats().length > 0}
+    <div class="p-4 rounded-xl bg-surface-800 border border-white/5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-xs font-bold text-white/60 uppercase tracking-widest">Models</h3>
+        <span class="text-[10px] text-white/30">{modelStats().length} models</span>
+      </div>
+      <div class="space-y-1 max-h-80 overflow-y-auto">
+        {#each modelStats() as [nametag, stats], i}
+          {@const color = getProviderColor(stats.provider)}
+          {@const maxCount = modelStats()[0][1].count}
+          <div class="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-surface-700 transition-colors">
+            <span class="text-[10px] text-white/30 w-5 text-right shrink-0">{i + 1}</span>
+            <div class="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style="background-color: {color}33;">
+              <User size={12} style="color: {color};" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-medium text-white truncate">{nametag}</div>
+              <div class="text-[10px] text-white/30">{stats.provider}</div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+              <div class="text-right">
+                <div class="text-xs font-bold text-white">{stats.count}</div>
+                <div class="text-[10px] text-white/30">recordings</div>
+              </div>
+              <div class="text-right w-16">
+                <div class="text-xs font-bold text-white">{formatDuration(stats.duration)}</div>
+                <div class="text-[10px] text-white/30">duration</div>
+              </div>
+              <div class="w-20 h-1.5 bg-surface-900 rounded-full overflow-hidden shrink-0">
+                <div
+                  class="h-full rounded-full transition-all duration-500"
+                  style="width: {(stats.count / maxCount) * 100}%; background-color: {color};"
+                ></div>
+              </div>
             </div>
           </div>
         {/each}

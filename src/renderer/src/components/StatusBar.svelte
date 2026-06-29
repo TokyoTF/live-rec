@@ -1,6 +1,6 @@
 <script>
-  import { onlineCount, recordingCount, totalCount, sessionRecordedToday, sessionActiveTime, sessionTotalTime, totalRecordingSize } from '@lib/store.js'
-  import { CircleIcon, CircleDotIcon, ListIcon, Clock, Activity, HardDrive } from 'lucide-svelte'
+  import { onlineCount, recordingCount, totalCount, offlineCount, privateCount, sessionRecordedToday, sessionActiveTime, sessionTotalTime, totalRecordingSize } from '@lib/store.js'
+  import { CircleIcon, CircleDotIcon, ListIcon, Clock, Activity, HardDrive, EyeOff, Lock } from 'lucide-svelte'
 
   function formatDuration(ms) {
     if (!ms || ms <= 0) return '0s'
@@ -38,6 +38,18 @@
     <CircleIcon size={10} class="text-green-500 fill-green-500" />
     <span class="font-bold">{$onlineCount}</span>
     <span class="text-gray-400">Online</span>
+  </div>
+
+  <div class="flex items-center gap-1.5 text-xs text-white">
+    <CircleIcon size={10} class="text-gray-500 fill-gray-500" />
+    <span class="font-bold">{$offlineCount}</span>
+    <span class="text-gray-400">Offline</span>
+  </div>
+
+  <div class="flex items-center gap-1.5 text-xs text-white">
+    <Lock size={10} class="text-yellow-500" />
+    <span class="font-bold">{$privateCount}</span>
+    <span class="text-gray-400">Private</span>
   </div>
 
   <div class="flex items-center gap-1.5 text-xs text-white">

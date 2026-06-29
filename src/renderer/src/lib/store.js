@@ -241,6 +241,8 @@ export function getCurrentStream() { return get(currentStream) }
 // Derived counts
 export const onlineCount = derived(recordings, $r => $r.filter(r => r.status === 'online').length)
 export const recordingCount = derived(recordings, $r => $r.filter(r => r.statusRec).length)
+export const offlineCount = derived(recordings, $r => $r.filter(r => r.status === 'offline').length)
+export const privateCount = derived(recordings, $r => $r.filter(r => r.status === 'private').length)
 export const totalCount = derived(recordings, $r => $r.length)
 
 // Session stats

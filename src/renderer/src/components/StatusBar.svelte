@@ -1,5 +1,5 @@
 <script>
-  import { onlineCount, recordingCount, totalCount, sessionRecordedToday, sessionActiveTime, sessionTotalTime } from '@lib/store.js'
+  import { onlineCount, recordingCount, totalCount, sessionRecordedToday, sessionActiveTime, sessionTotalTime, totalRecordingSize } from '@lib/store.js'
   import { CircleIcon, CircleDotIcon, ListIcon, Clock, Activity, HardDrive } from 'lucide-svelte'
 
   function formatDuration(ms) {
@@ -22,6 +22,14 @@
       return `${h}h ${m}m`
     }
     return `${totalMin}m`
+  }
+
+  function formatSize(bytes) {
+    if (!bytes || bytes <= 0) return '0 B'
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
   }
 </script>
 
@@ -64,6 +72,14 @@
       <Activity size={10} class="text-emerald-400" />
       <span class="font-bold">{formatDuration($sessionActiveTime)}</span>
       <span class="text-gray-400">Active</span>
+    </div>
+  {/if}
+
+  {#if $recordingCount > 0}
+    <div class="flex items-center gap-1.5 text-xs text-white">
+      <HardDrive size={10} class="text-purple-400" />
+      <span class="font-bold">{formatSize($totalRecordingSize)}</span>
+      <span class="text-gray-400">Size</span>
     </div>
   {/if}
 </div>

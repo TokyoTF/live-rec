@@ -264,6 +264,8 @@ export const sessionTotalTime = derived(recordingHistory, $h => {
     .reduce((sum, r) => sum + (r.duration || 0), 0)
 })
 
+export const totalRecordingSize = writable(0)
+
 export function getOnlineCount() { return get(onlineCount) }
 export function getRecordingCount() { return get(recordingCount) }
 export function getTotalCount() { return get(totalCount) }
@@ -722,6 +724,10 @@ export function init() {
           }
         })
       }
+    })
+
+    on('rec:totalSize', (_event, size) => {
+      totalRecordingSize.set(size || 0)
     })
 
     function schedulePoll() {

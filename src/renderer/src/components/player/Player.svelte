@@ -134,7 +134,7 @@
   <!-- Header / Drag handle -->
   <!-- svelte-ignore a11y_click_events_have_key_events -->
   <div
-    class="px-3 py-2 border-b border-white/5 flex items-center justify-between cursor-move select-none active:cursor-grabbing bg-surface-700/40"
+    class="px-3 py-2 border-b border-white/5 flex items-center cursor-move select-none active:cursor-grabbing bg-surface-700/40"
     onmousedown={onMouseDown}
   >
     <div class="flex items-center gap-2">
@@ -148,6 +148,7 @@
         {$currentStream.nametag || 'No stream selected'}
       </span>
     </div>
+    <div class="flex gap-2 items-center ml-auto">
     {#if currentRec?.statusRec}
       <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-recording/30">
         <span class="w-1 h-1 rounded-full bg-recording"></span>
@@ -160,6 +161,7 @@
     >
       <EyeOff size={12} />
     </button>
+    </div>
   </div>
 
   <div class="flex-1 p-1.5 relative">

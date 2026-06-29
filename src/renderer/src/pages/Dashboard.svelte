@@ -3,7 +3,7 @@
   import AddLiveModal from '@components/AddLiveModal.svelte'
   import CamCard from '@components/CamCard.svelte'
   import History from '@components/History.svelte'
-  import Stats from '@components/Stats.svelte'
+  import Stats from './Stats.svelte'
   import {
     recordings, isLoaded, removeOfflineRecordings, updateAllStatus, orderByStatus, setOrderByStatus,
     viewMode, setViewMode, groupBy,

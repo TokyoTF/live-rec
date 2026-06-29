@@ -111,11 +111,14 @@
 ## Prerequisites
 
 > [!IMPORTANT]
-> You **must** have FFmpeg installed and available in your system PATH.
+> You **must** have FFmpeg to record streams.
 
 1. Download FFmpeg from [BtbN Builds](https://github.com/BtbN/FFmpeg-Builds/releases) (latest `git-master` build recommended)
-2. Extract and add the `bin` folder to your system PATH
-3. Verify installation: `ffmpeg -version`
+2. Extract `ffmpeg.exe` from the `bin` folder and place it anywhere you like
+3. In the app, go to **Settings** and select the path to `ffmpeg.exe`
+
+> [!TIP]
+> You do **not** need to add FFmpeg to your system PATH. The app lets you select `ffmpeg.exe` directly from the settings.
 
 <details>
 <summary><b>Development Requirements</b></summary>

@@ -3,13 +3,14 @@
   import AddLiveModal from '@components/AddLiveModal.svelte'
   import CamCard from '@components/CamCard.svelte'
   import History from '@components/History.svelte'
+  import Stats from '@components/Stats.svelte'
   import {
     recordings, isLoaded, removeOfflineRecordings, updateAllStatus, orderByStatus, setOrderByStatus,
     viewMode, setViewMode, groupBy,
     providers,
     notify, allTags, showTags
   } from '@lib/store.js'
-  import { SettingsIcon, LayoutGrid, LayoutList, RefreshCcwIcon, Trash2Icon, ArrowUpDownIcon, Video, Film, Search, X, Tag } from 'lucide-svelte'
+  import { SettingsIcon, LayoutGrid, LayoutList, RefreshCcwIcon, Trash2Icon, ArrowUpDownIcon, Video, Film, Search, X, Tag, BarChart3 } from 'lucide-svelte'
   import { tooltip } from '@lib/tooltip.js'
   import { onMount, onDestroy } from 'svelte'
 
@@ -133,6 +134,15 @@
       >
         <Film size={12} />
         History
+      </button>
+      <button
+        class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer rounded-full {activeTab === 'stats'
+          ? 'bg-white text-black'
+          : 'bg-surface-700 text-white hover:bg-surface-600'}"
+        onclick={() => activeTab = 'stats'}
+      >
+        <BarChart3 size={12} />
+        Stats
       </button>
     </div>
 
@@ -282,6 +292,8 @@
 
     {#if activeTab === 'history'}
       <History />
+    {:else if activeTab === 'stats'}
+      <Stats />
     {:else}
       <!-- Grid -->
       <div class="flex-1 overflow-y-auto p-4">

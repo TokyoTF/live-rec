@@ -1,6 +1,6 @@
 <script>
   import { recordingHistory, recordings, sessionRecordedToday, sessionTotalTime, sessionActiveTime, totalRecordingSize, onlineCount, recordingCount, totalCount, getProviderColor } from '@lib/store.js'
-  import { BarChart3, Clock, HardDrive, Film, Activity, Globe } from 'lucide-svelte'
+  import { BarChart3, Clock, HardDrive, Film, Activity, Globe, Heart, Database } from 'lucide-svelte'
 
   function formatDuration(ms) {
     if (!ms || ms <= 0) return '0s'
@@ -45,6 +45,19 @@
     $recordingHistory
       .filter(r => r.timestamp && new Date(r.timestamp).toDateString() === new Date().toDateString())
       .reduce((sum, r) => sum + (r.duration || 0), 0)
+  )
+
+  let favoriteModel = $derived(() => {
+    const counts = {}
+    for (const r of $recordingHistory) {
+      counts[r.nametag] = (counts[r.nametag] || 0) + 1
+    }
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
+    return sorted.length > 0 ? sorted[0] : null
+  })
+
+  let totalDataRecorded = $derived(
+    $recordingHistory.reduce((sum, r) => sum + (r.fileSize || 0), 0)
   )
 </script>
 
@@ -122,6 +135,28 @@
       <div>
         <div class="text-[11px] text-white/40 mb-1">Unique Models</div>
         <div class="text-lg font-bold text-white">{new Set($recordingHistory.map(r => r.nametag)).size}</div>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/5">
+      <div class="flex items-center gap-3">
+        <Heart size={16} class="text-pink-400 shrink-0" />
+        <div>
+          <div class="text-[11px] text-white/40 mb-1">Favorite Model</div>
+          {#if favoriteModel()}
+            <div class="text-lg font-bold text-white">{favoriteModel()[0]}</div>
+            <div class="text-[10px] text-white/30">{favoriteModel()[1]} recordings</div>
+          {:else}
+            <div class="text-lg font-bold text-white/30">—</div>
+          {/if}
+        </div>
+      </div>
+      <div class="flex items-center gap-3">
+        <Database size={16} class="text-cyan-400 shrink-0" />
+        <div>
+          <div class="text-[11px] text-white/40 mb-1">Total Data Recorded</div>
+          <div class="text-lg font-bold text-white">{formatSize(totalDataRecorded)}</div>
+          <div class="text-[10px] text-white/30">all sessions</div>
+        </div>
       </div>
     </div>
   </div>

@@ -399,7 +399,8 @@ export function stopRec(nametag, provider, resolutions) {
         nametag,
         provider,
         duration: recordedDuration,
-        thumb: thumbPath || thumb
+        thumb: thumbPath || thumb,
+        fileSize: draft[index]?.fileSize || 0
       })
     })
   }
@@ -611,7 +612,8 @@ export function init() {
                 nametag: args.nametag,
                 provider: args.provider,
                 duration: finalDuration,
-                thumb: thumbPath || draft[idx].thumb
+                thumb: thumbPath || draft[idx].thumb,
+                fileSize: draft[idx]?.fileSize || 0
               })
             })
           }
@@ -628,7 +630,8 @@ export function init() {
             recUrl: args.url || draft[idx].recUrl || null,
             recResolution: args.selresolution || draft[idx].recResolution || null,
             recProvider: args.provider_ || draft[idx].recProvider || null,
-            recFiles: args.files || draft[idx].recFiles || []
+            recFiles: args.files || draft[idx].recFiles || [],
+            fileSize: args.fileSize || 0
           }
           return draft
         })

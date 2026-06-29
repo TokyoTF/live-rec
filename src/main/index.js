@@ -476,7 +476,8 @@ app.whenReady().then(async () => {
           url: rec.url || null,
           selresolution: rec.selresolution || null,
           provider_: rec.provider || args.provider,
-          files: rec.files || []
+          files: rec.files || [],
+          fileSize: rec.fileSize || 0
         })
       }
 
@@ -557,6 +558,7 @@ app.whenReady().then(async () => {
         selresolution: rec?.selresolution || null,
         provider_: rec?.provider || args.provider,
         files: rec?.files || [],
+        fileSize: rec?.fileSize || 0,
         totalSize: tool.getTotalRecordingSize()
       })
     } catch (err) {

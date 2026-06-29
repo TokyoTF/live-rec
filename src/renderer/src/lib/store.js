@@ -601,7 +601,7 @@ export function init() {
           const isPaused = !!args.paused
           const wasRecording = draft[idx].statusRec
           const finalDuration = draft[idx].timeRec || 0
-          const newTimeRec = isRecording ? (args.timeRec || draft[idx].timeRec || 0) : 0
+          const newTimeRec = isRecording ? (args.timeRec != null ? args.timeRec : (draft[idx].timeRec || 0)) : 0
           if (args.status === false && wasRecording && finalDuration > 0) {
             downloadThumbnail(draft[idx].thumb).then(thumbPath => {
               addToHistory({
@@ -620,7 +620,7 @@ export function init() {
             codec: args.codec,
             stats: args.stats,
             timeRec: newTimeRec,
-            timeFormat: isRecording ? (args.timeRec ? formatTime(args.timeRec) : draft[idx].timeFormat || '0 s') : '0 s',
+            timeFormat: isRecording ? (args.timeRec != null ? formatTime(args.timeRec) : (draft[idx].timeFormat || '0 s')) : '0 s',
             outputPath: args.outputPath || draft[idx].outputPath || null,
             recUrl: args.url || draft[idx].recUrl || null,
             recResolution: args.selresolution || draft[idx].recResolution || null,

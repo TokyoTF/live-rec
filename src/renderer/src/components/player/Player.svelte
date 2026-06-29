@@ -1,5 +1,6 @@
 <script>
-  import { currentStream, recordings } from '@lib/store.js'
+  import { currentStream, recordings, playerHidden } from '@lib/store.js'
+  import { EyeOff } from 'lucide-svelte'
   import { onMount, onDestroy } from 'svelte'
 
   import 'vidstack/bundle'
@@ -153,6 +154,12 @@
         <span class="text-[9px] font-bold text-white tracking-wider">REC</span>
       </div>
     {/if}
+    <button
+      onclick={() => playerHidden.set(true)}
+      class="p-1 rounded-md hover:bg-white/10 text-white/40 hover:text-white/70 transition-colors cursor-pointer"
+    >
+      <EyeOff size={12} />
+    </button>
   </div>
 
   <div class="flex-1 p-1.5 relative">

@@ -229,6 +229,7 @@ export const isLoaded = writable(false)
 export const isInitialized = writable(false)
 export const orderByStatus = writable(false)
 export const currentStream = writable({ url: '', nametag: '' })
+export const playerHidden = writable(false)
 let isInitializing = false
 
 // Compatibility Getters

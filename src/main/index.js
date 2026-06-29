@@ -463,6 +463,7 @@ app.whenReady().then(async () => {
       )
 
       if (rec) {
+        const recFileSize = tool.getRecording(args.nametag, args.provider)?.fileSize || 0
         event.reply('rec:live:status', {
           nametag: args.nametag,
           provider: args.provider,
@@ -477,7 +478,7 @@ app.whenReady().then(async () => {
           selresolution: rec.selresolution || null,
           provider_: rec.provider || args.provider,
           files: rec.files || [],
-          fileSize: rec.fileSize || 0
+          fileSize: recFileSize
         })
       }
 
@@ -544,6 +545,7 @@ app.whenReady().then(async () => {
         true,
         args.cookies
       )
+      const recFileSize = rec ? tool.getRecording(args.nametag, args.provider)?.fileSize || 0 : 0
       event.reply('rec:live:status', {
         nametag: args.nametag,
         provider: args.provider,
@@ -558,7 +560,7 @@ app.whenReady().then(async () => {
         selresolution: rec?.selresolution || null,
         provider_: rec?.provider || args.provider,
         files: rec?.files || [],
-        fileSize: rec?.fileSize || 0,
+        fileSize: recFileSize,
         totalSize: tool.getTotalRecordingSize()
       })
     } catch (err) {

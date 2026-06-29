@@ -63,6 +63,8 @@
     if (filter === 'online') recs = recs.filter((r) => r.status === 'online')
     else if (filter === 'recording') recs = recs.filter((r) => r.statusRec)
     else if (filter === 'offline') recs = recs.filter((r) => r.status === 'offline' || r.status === 'private')
+    else if (filter === 'private') recs = recs.filter((r) => r.status === 'private')
+
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim()
       recs = recs.filter((r) => r.nametag?.toLowerCase().includes(q))
@@ -106,6 +108,7 @@
     { key: 'all', label: 'All' },
     { key: 'online', label: 'Online' },
     { key: 'recording', label: 'Recording' },
+    { key: 'private', label: 'Private' },
     { key: 'offline', label: 'Offline' },
   ]
 </script>

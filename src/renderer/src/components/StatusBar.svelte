@@ -41,9 +41,9 @@
   </div>
 
   <div class="flex items-center gap-1.5 text-xs text-white">
-    <CircleIcon size={10} class="text-gray-500 fill-gray-500" />
-    <span class="font-bold">{$offlineCount}</span>
-    <span class="text-gray-400">Offline</span>
+    <CircleDotIcon size={10} class="text-red-500" />
+    <span class="font-bold">{$recordingCount}</span>
+    <span class="text-gray-400">Recording</span>
   </div>
 
   <div class="flex items-center gap-1.5 text-xs text-white">
@@ -53,10 +53,11 @@
   </div>
 
   <div class="flex items-center gap-1.5 text-xs text-white">
-    <CircleDotIcon size={10} class="text-red-500" />
-    <span class="font-bold">{$recordingCount}</span>
-    <span class="text-gray-400">Recording</span>
+    <CircleIcon size={10} class="text-gray-500 fill-gray-500" />
+    <span class="font-bold">{$offlineCount}</span>
+    <span class="text-gray-400">Offline</span>
   </div>
+
 
   <div class="flex items-center gap-1.5 text-xs text-white">
     <ListIcon size={10} class="text-gray-400" />

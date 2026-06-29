@@ -556,7 +556,8 @@ app.whenReady().then(async () => {
         url: rec?.url || null,
         selresolution: rec?.selresolution || null,
         provider_: rec?.provider || args.provider,
-        files: rec?.files || []
+        files: rec?.files || [],
+        totalSize: tool.getTotalRecordingSize()
       })
     } catch (err) {
       Logger.error(`rec:live:status error (${args.nametag}):`, err.message)

@@ -595,6 +595,7 @@ export function init() {
     })
 
     on('rec:live:status', (_event, args) => {
+      if (args.totalSize != null) totalRecordingSize.set(args.totalSize)
       const idx = findIndex(args.nametag, args.provider)
       if (idx !== -1) {
         recordings.update(r => {

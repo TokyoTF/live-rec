@@ -153,10 +153,7 @@
                   <option value="mkv">MKV (Recommended)</option>
                   <option value="mp4">MP4</option>
                   <option value="ts">TS</option>
-                  <option value="flv">FLV</option>
-                  <option value="avi">AVI</option>
                   <option value="mov">MOV</option>
-                  <option value="webm">WebM</option>
                 </select>
               </div>
             </div>

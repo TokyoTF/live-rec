@@ -35,8 +35,7 @@ const tool = new WarpClass()
 let camsodaProxy = null
 
 WarpClass.setErrorCallback((err) => {
-  const mainWin = BrowserWindow.getAllWindows()[0]
-  if (mainWin) mainWin.webContents.send('rec:error', err)
+  if (mainWindow) mainWindow.webContents.send('rec:error', err)
 })
 
 const autoUpdater = electronUpdater.autoUpdater
@@ -135,6 +134,7 @@ const setupRequestRules = () => {
 
 let tray = null
 let trayWindow = null
+let mainWindow = null
 
 function createTrayWindow() {
   trayWindow = new BrowserWindow({
@@ -167,7 +167,7 @@ function createTrayWindow() {
 }
 
 function createWindow() {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1000,
     height: 670,
     show: false,
@@ -216,6 +216,10 @@ function createWindow() {
         app.quit()
       }
     }
+  })
+
+  mainWindow.on('closed', () => {
+    mainWindow = null
   })
 
   if (!existsSync(FolderMain)) {
@@ -279,8 +283,6 @@ app.whenReady().then(async () => {
 
   // Toggle main window on left click
   tray.on('click', () => {
-    const windows = BrowserWindow.getAllWindows()
-    const mainWindow = windows.find((w) => w !== trayWindow)
     if (mainWindow) {
       if (mainWindow.isVisible()) {
         mainWindow.hide()
@@ -639,8 +641,6 @@ app.whenReady().then(async () => {
   })
 
   ipcMain.on('tray:show-app', () => {
-    const windows = BrowserWindow.getAllWindows()
-    const mainWindow = windows.find((w) => w !== trayWindow)
     if (mainWindow) {
       mainWindow.show()
       mainWindow.focus()
@@ -657,8 +657,6 @@ app.whenReady().then(async () => {
 
   // Bridge stats from main window to tray window
   ipcMain.on('tray:get-stats', () => {
-    const windows = BrowserWindow.getAllWindows()
-    const mainWindow = windows.find((w) => w !== trayWindow)
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('tray:get-stats')
     }
@@ -818,28 +816,23 @@ app.whenReady().then(async () => {
   })
 
   autoUpdater.on('update-available', (info) => {
-    const window = BrowserWindow.getAllWindows()[0]
-    if (window) window.webContents.send('updater:available', info)
+    if (mainWindow) mainWindow.webContents.send('updater:available', info)
   })
 
   autoUpdater.on('update-not-available', (info) => {
-    const window = BrowserWindow.getAllWindows()[0]
-    if (window) window.webContents.send('updater:not-available', info)
+    if (mainWindow) mainWindow.webContents.send('updater:not-available', info)
   })
 
   autoUpdater.on('error', (err) => {
-    const window = BrowserWindow.getAllWindows()[0]
-    if (window) window.webContents.send('updater:error', err.message)
+    if (mainWindow) mainWindow.webContents.send('updater:error', err.message)
   })
 
   autoUpdater.on('download-progress', (progressObj) => {
-    const window = BrowserWindow.getAllWindows()[0]
-    if (window) window.webContents.send('updater:progress', progressObj)
+    if (mainWindow) mainWindow.webContents.send('updater:progress', progressObj)
   })
 
   autoUpdater.on('update-downloaded', (info) => {
-    const window = BrowserWindow.getAllWindows()[0]
-    if (window) window.webContents.send('updater:downloaded', info)
+    if (mainWindow) mainWindow.webContents.send('updater:downloaded', info)
   })
 
   ipcMain.on('extensions:list', (event) => {

@@ -39,7 +39,6 @@
 <td width="50%">
 
 ### Core
-
 - **Auto Recording** — starts when models go live
 - **Manual Recording** — one-click start/stop
 - **Auto Resume** — reconnects after disconnections
@@ -49,7 +48,6 @@
 <td width="50%">
   
 ### Tools
-  
 - **Mini Player** — floating preview with stats
 - **Recording Stats** — codec, bitrate, FPS, resolution
 - **Session Stats** — tracks daily/total recordings
@@ -61,7 +59,6 @@
 <td>
 
 ### Settings
-
 - Custom FFmpeg parameters
 - Adjustable status check intervals
 - Max recording file size (auto-split)
@@ -71,7 +68,6 @@
 <td>
 
 ### Advanced
-
 - Local proxy for Camsoda streams
 - Cloudflare bypass for protected sites
 - Configurable date formats
@@ -92,7 +88,6 @@ The built-in **Stats** panel provides comprehensive insights into your recording
 <td width="50%">
 
 ### Overview
-
 - **Online Count** — models currently live
 - **Recording Count** — active recordings
 - **Current Size** — total data being recorded
@@ -102,7 +97,6 @@ The built-in **Stats** panel provides comprehensive insights into your recording
 <td width="50%">
 
 ### Today's Session
-
 - **Recordings Today** — sessions completed today
 - **Total Duration** — time spent recording today
 - **Active Time** — total app uptime
@@ -113,7 +107,6 @@ The built-in **Stats** panel provides comprehensive insights into your recording
 <td>
 
 ### All Time
-
 - **Total Duration** — cumulative recording time
 - **Average Duration** — mean session length
 - **Unique Models** — distinct models recorded
@@ -124,7 +117,6 @@ The built-in **Stats** panel provides comprehensive insights into your recording
 <td>
 
 ### Breakdowns
-
 - **By Provider** — recordings, duration & size per site
 - **By Model** — individual stats with progress bars
 - Persistent across sessions (stored in config)

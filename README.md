@@ -261,7 +261,7 @@ Camsoda uses a local proxy to rewrite stream URLs. If recording fails:
 
 ---
 
-<div align="center">
+<div>
 
 **Built with ❤️ using [Electron Vite](https://electron-vite.org/)**
 

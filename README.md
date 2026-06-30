@@ -87,6 +87,58 @@
 
 ---
 
+## Stats Panel
+
+The built-in **Stats** panel provides comprehensive insights into your recording activity:
+
+<table>
+<tr>
+<td width="50%">
+
+### Overview
+
+- **Online Count** — models currently live
+- **Recording Count** — active recordings
+- **Current Size** — total data being recorded
+- **Total Sessions** — all-time recording count
+
+</td>
+<td width="50%">
+
+### Today's Session
+
+- **Recordings Today** — sessions completed today
+- **Total Duration** — time spent recording today
+- **Active Time** — total app uptime
+
+</td>
+</tr>
+<tr>
+<td>
+
+### All Time
+
+- **Total Duration** — cumulative recording time
+- **Average Duration** — mean session length
+- **Unique Models** — distinct models recorded
+- **Favorite Model** — most recorded model
+- **Total Data Recorded** — total GB captured
+
+</td>
+<td>
+
+### Breakdowns
+
+- **By Provider** — recordings, duration & size per site
+- **By Model** — individual stats with progress bars
+- Persistent across sessions (stored in config)
+
+</td>
+</tr>
+</table>
+
+---
+
 ## Sites Supported
 
 | Site | Status | Auto-Record | Notes |

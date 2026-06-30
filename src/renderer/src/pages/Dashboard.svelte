@@ -5,7 +5,7 @@
   import History from '@components/History.svelte'
   import Stats from './Stats.svelte'
   import {
-    recordings, isLoaded, removeOfflineRecordings, updateAllStatus, orderByStatus, setOrderByStatus,
+    recordings, isLoaded, updateAllStatus, orderByStatus, setOrderByStatus,
     viewMode, setViewMode, groupBy,
     providers,
     notify, allTags, showTags
@@ -216,11 +216,6 @@
         <RefreshCcwIcon size={16} />
       </button>
 
-      {#if filter === 'offline' && filteredRecordings.length > 0}
-        <button onclick={() => { removeOfflineRecordings(); notify('Offline cameras cleared', 'success', 2500) }} class="p-2 text-accent-400 transition-all cursor-pointer bg-accent-500/20 hover:bg-accent-500/30 rounded-full" use:tooltip={"Clear Offline"}>
-          <Trash2Icon size={16} />
-        </button>
-      {/if}
     </div>
 
     <!-- Divider -->

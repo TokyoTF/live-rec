@@ -379,11 +379,6 @@ export const allTags = derived(recordings, $r => {
   return [...tagSet].sort()
 })
 
-export function removeOfflineRecordings() {
-  const offline = get(recordings).filter(r => r.status === 'offline' || r.status === 'private')
-  offline.forEach(r => removeRecording(r.nametag, r.provider))
-}
-
 export function startRec(nametag, provider, url, resolution,selresolution) {
   recordings.update(r => {
     const idx = r.findIndex(i => i.nametag === nametag && i.provider === provider)

@@ -29,8 +29,10 @@
   let tagWrapper = $state(null)
 
   $effect(() => {
-    if (resolutions?.length > 0 && !localRecUrl) {
-      localRecUrl = resolutions[0].url
+    if (resolutions?.length > 0) {
+      if (!localRecUrl || !resolutions.some(r => r.url === localRecUrl)) {
+        localRecUrl = resolutions[0].url
+      }
     }
   })
 

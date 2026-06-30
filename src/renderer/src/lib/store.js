@@ -583,10 +583,20 @@ export function init() {
             resolutions: args.data.resolutions,
             timeFormat: formatTime(args.data.timeRec),
             group: args.data.group ?? draft[idx].group,
-            force_type: args.data.force_type
+            force_type: args.data.force_type,
+            _recoveryPending: false
           }
           return draft
         })
+
+        if (args.data.status === 'online' && !args.data.resolutions?.length) {
+          recordings.update(r => {
+            const draft = [...r]
+            draft[idx]._recoveryPending = true
+            return draft
+          })
+          send('rec:recovery', { name: args.data.nametag, provider: args.provider })
+        }
       }
       sortRecordings()
       if (!get(currentStream).url && args.data.status === 'online') {
@@ -672,6 +682,9 @@ export function init() {
             console.log(`Resuming recording for ${args.nametag} after private`)
             startRec(args.nametag, args.provider, pickUrl(args.data.resolutions) || pickUrl(draft[idx].resolutions))
           } else if ((prevStatus === 'private' || prevStatus === 'offline')) {
+            draft[idx]._recoveryPending = true
+            send('rec:recovery', { name: args.nametag, provider: args.provider })
+          } else if (!draft[idx].resolutions?.length && !draft[idx].statusRec) {
             draft[idx]._recoveryPending = true
             send('rec:recovery', { name: args.nametag, provider: args.provider })
           } else if (get(autoRec) && !draft[idx].statusRec) {

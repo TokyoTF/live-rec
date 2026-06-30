@@ -533,6 +533,10 @@ app.whenReady().then(async () => {
       Logger.info('url', url)
       Logger.info('url2', args.url)
 
+      const fileSizeBeforeStop = (args.type === 'stopRec')
+        ? (tool.getRecording(args.nametag, args.provider)?.fileSize || 0)
+        : 0
+
       const rec = await tool.rec(
         args.nametag,
         args.type,
@@ -547,7 +551,9 @@ app.whenReady().then(async () => {
         true,
         args.cookies
       )
-      const recFileSize = rec ? tool.getRecording(args.nametag, args.provider)?.fileSize || 0 : 0
+      const recFileSize = (args.type === 'stopRec')
+        ? fileSizeBeforeStop
+        : (rec ? tool.getRecording(args.nametag, args.provider)?.fileSize || 0 : 0)
       event.reply('rec:live:status', {
         nametag: args.nametag,
         provider: args.provider,

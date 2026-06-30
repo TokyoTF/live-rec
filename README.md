@@ -1,4 +1,4 @@
-<div align="center">
+<div>
 
 # <img src="https://github.com/user-attachments/assets/2978fd6b-6846-4ebb-9eb6-6e2b5386fd10" width="48" /> Live Rec
 
@@ -9,8 +9,6 @@
 [![Vite][Vite-badge]][Vite-url]
 [![License: MIT][license-badge]](#)
 
-<br/>
-
 [![Windows][windows-badge]](#)
 [![Camsoda][camsoda-badge]](#sites-supported)
 [![Chaturbate][chaturbate-badge]](#sites-supported)
@@ -20,12 +18,10 @@
 ---
 
 ## About
-
 **Live Rec** is a desktop application built with Electron that automatically monitors and records live streams from multiple cam platforms. It runs in the system tray, detects when models go online, and starts recording — no manual intervention needed.
 
 <details>
 <summary><b>Why use Live Rec?</b></summary>
-<br>
 
 - **Set it and forget it** — add models to your list and the app handles the rest.
 - **Resilient recordings** — MKV format means partial files are still playable.
@@ -51,9 +47,9 @@
 
 </td>
 <td width="50%">
-
+  
 ### Tools
-
+  
 - **Mini Player** — floating preview with stats
 - **Recording Stats** — codec, bitrate, FPS, resolution
 - **Session Stats** — tracks daily/total recordings

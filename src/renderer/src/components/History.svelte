@@ -34,6 +34,11 @@
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
   }
 
+  function removeRecord(id) {
+    recordingHistory.update(h => h.filter(r => r.id !== id))
+    saveConfig()
+  }
+
   function clearHistory() {
     recordingHistory.set([])
     saveConfig()
@@ -90,6 +95,13 @@
               {/if}
             </div>
           </div>
+
+          <button
+            onclick={() => removeRecord(record.id)}
+            class="p-1.5 rounded-full hover:bg-surface-600 text-white/30 hover:text-red-400 transition-colors shrink-0 cursor-pointer"
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
       {/each}
     </div>

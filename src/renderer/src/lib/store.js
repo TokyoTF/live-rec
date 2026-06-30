@@ -282,12 +282,9 @@ export const sessionRecordedToday = derived(recordingHistory, $h => {
   return $h.filter(r => r.timestamp && new Date(r.timestamp).toDateString() === today).length
 })
 export const sessionActiveTime = derived(recordings, $r => {
-  const now = Date.now()
   return $r.reduce((total, r) => {
-    if (!r.statusRec || !r.startTime) return total
-    let elapsed = now - r.startTime - (r.pausedAccumulator || 0)
-    if (r.pausedAt) elapsed -= (now - r.pausedAt)
-    return total + Math.max(0, elapsed)
+    if (!r.statusRec) return total
+    return total + (r.timeRec || 0)
   }, 0)
 })
 export const sessionTotalTime = derived(recordingHistory, $h => {
@@ -638,7 +635,8 @@ export function init() {
             recResolution: args.selresolution || draft[idx].recResolution || null,
             recProvider: args.provider_ || draft[idx].recProvider || null,
             recFiles: args.files || draft[idx].recFiles || [],
-            fileSize: args.fileSize || 0
+            fileSize: args.fileSize || 0,
+            startTime: args.startTime || draft[idx].startTime || null
           }
           return draft
         })
@@ -769,6 +767,7 @@ export function init() {
       if (!get(isLoaded)) return
       recordings.update(r => {
         const draft = [...r]
+        let totalSize = 0
         draft.forEach((n, idx) => {
           if (n.statusRec && !n.paused) {
             const newTime = (n.timeRec || 0) + 1000
@@ -783,7 +782,11 @@ export function init() {
               stopRec(n.nametag, n.provider, n.resolutions)
             }
           }
+          if (n.statusRec) {
+            totalSize += n.fileSize || 0
+          }
         })
+        totalRecordingSize.set(totalSize)
         return draft
       })
     }, 1000)

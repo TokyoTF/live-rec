@@ -35,6 +35,10 @@
   })
 
   let isFavorite = $derived($reclist.some(r => r.nametag === nametag && r.provider === provider && r.favorite === true))
+  let selectedResLabel = $derived(() => {
+    const res = resolutions?.find(r => r.url === localRecUrl)
+    return res ? `${res.resolution.width}x${res.resolution.height}` : ''
+  })
   let statsPos = $state({ show: false, above: true, x: 0, y: 0 })
   let statsTipEl = $state(null)
 
@@ -46,8 +50,13 @@
     tick().then(() => {
       if (!statsTipEl) return
       const tipW = statsTipEl.offsetWidth
+      const tipH = statsTipEl.offsetHeight
       const clampedX = Math.min(Math.max(rect.left + rect.width / 2, tipW / 2 + 8), window.innerWidth - tipW / 2 - 8)
-      if (clampedX !== statsPos.x) statsPos = { ...statsPos, x: clampedX }
+      let clampedY = y
+      if (y + tipH > window.innerHeight - 8) {
+        clampedY = rect.top - tipH - 6
+      }
+      if (clampedX !== statsPos.x || clampedY !== statsPos.y) statsPos = { ...statsPos, x: clampedX, y: clampedY }
     })
   }
 
@@ -174,10 +183,11 @@
             class="p-1 rounded-full hover:bg-surface-600 transition-all cursor-pointer"
             onclick={() => showTagInput = !showTagInput}
           >
-            <Tag size={14} class="{tags.length > 0 ? 'text-accent-400' : 'text-white/40 hover:text-white/70'}" />
+            <Tag size={14} class={tags.length > 0 ? 'text-accent-400' : 'text-white/40 hover:text-white/70'} />
           </button>
           {#if showTagInput}
             <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
             <div class="absolute top-full right-0 mt-1 p-2 bg-surface-900 border border-white/10 rounded-lg shadow-xl z-50 min-w-36" onclick={(e) => e.stopPropagation()}>
               <input
                 type="text"
@@ -195,7 +205,7 @@
       {#if $viewMode === 'list' && statusRec}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 ml-2">
           {#if $showStats}
-            <div class="relative inline-flex" onmouseenter={checkStatsPosition} onmouseleave={hideStats}>
+            <div role="figure" class="relative inline-flex" onmouseenter={checkStatsPosition} onmouseleave={hideStats}>
               <div class="p-0.5 rounded-md hover:bg-surface-600 text-white/40 hover:text-white/70 transition-colors cursor-default">
                 <Activity size={12} />
               </div>
@@ -208,8 +218,8 @@
                   <div><span class="text-white/40">Bitrate:</span> {stats.currentKbps} kbps</div>
                   <div><span class="text-white/40">FPS:</span> {stats.currentFps}</div>
                 {/if}
-                {#if recResolution}
-                  <div><span class="text-white/40">Resolución:</span> {recResolution}</div>
+                {#if selectedResLabel()}
+                  <div><span class="text-white/40">Resolución:</span> {selectedResLabel()}</div>
                 {/if}
                 {#if recProvider}
                   <div><span class="text-white/40">Provider:</span> {recProvider}</div>
@@ -264,7 +274,7 @@
       {#if (statusRec || paused) && $viewMode === 'grid'}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 mt-1">
           {#if $showStats}
-            <div class="relative inline-flex" onmouseenter={checkStatsPosition} onmouseleave={hideStats}>
+            <div role="figure" class="relative inline-flex" onmouseenter={checkStatsPosition} onmouseleave={hideStats}>
               <div class="p-0.5 rounded-md hover:bg-surface-600 text-white/40 hover:text-white/70 transition-colors cursor-default">
                 <Activity size={12} />
               </div>
@@ -277,8 +287,8 @@
                   <div><span class="text-white/40">Bitrate:</span> {stats.currentKbps} kbps</div>
                   <div><span class="text-white/40">FPS:</span> {stats.currentFps}</div>
                 {/if}
-                {#if recResolution}
-                  <div><span class="text-white/40">Resolución:</span> {recResolution}</div>
+                {#if selectedResLabel()}
+                  <div><span class="text-white/40">Resolución:</span> {selectedResLabel()}</div>
                 {/if}
                 {#if recProvider}
                   <div><span class="text-white/40">Provider:</span> {recProvider}</div>

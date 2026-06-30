@@ -2,6 +2,8 @@
   import { recordingHistory, recordings, sessionRecordedToday, sessionTotalTime, sessionActiveTime, totalRecordingSize, onlineCount, recordingCount, totalCount, getProviderColor, allTimeStats } from '@lib/store.js'
   import { BarChart3, Clock, HardDrive, Film, Activity, Globe, Heart, Database, User } from 'lucide-svelte'
 
+  let modelSortBy = $state('count')
+
   function formatDuration(ms) {
     if (!ms || ms <= 0) return '0s'
     const totalSec = Math.floor(ms / 1000)
@@ -46,7 +48,11 @@
   )
 
   let modelStats = $derived(
-    Object.entries($allTimeStats.models || {}).sort((a, b) => b[1].count - a[1].count)
+    Object.entries($allTimeStats.models || {}).sort((a, b) => {
+      if (modelSortBy === 'count') return b[1].count - a[1].count
+      if (modelSortBy === 'duration') return b[1].duration - a[1].duration
+      return (b[1].totalDataRecorded || 0) - (a[1].totalDataRecorded || 0)
+    })
   )
 </script>
 
@@ -188,12 +194,28 @@
     <div class="p-4 rounded-xl bg-surface-800 border border-white/5">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-xs font-bold text-white/60 uppercase tracking-widest">Models</h3>
+        <div class="flex items-center gap-1">
+          <span class="text-[10px] text-white/30 mr-1">Sort:</span>
+          <button
+            onclick={() => modelSortBy = 'count'}
+            class="px-2 py-0.5 text-[10px] rounded-md transition-all cursor-pointer {modelSortBy === 'count' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}"
+          >Recordings</button>
+          <button
+            onclick={() => modelSortBy = 'duration'}
+            class="px-2 py-0.5 text-[10px] rounded-md transition-all cursor-pointer {modelSortBy === 'duration' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}"
+          >Duration</button>
+          <button
+            onclick={() => modelSortBy = 'size'}
+            class="px-2 py-0.5 text-[10px] rounded-md transition-all cursor-pointer {modelSortBy === 'size' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}"
+          >Size</button>
+        </div>
         <span class="text-[10px] text-white/30">{modelStats.length} models</span>
       </div>
       <div class="space-y-1 max-h-80 overflow-y-auto">
         {#each modelStats as [nametag, stats], i}
           {@const color = getProviderColor(stats.provider)}
-          {@const maxCount = modelStats[0][1].count}
+          {@const maxValue = modelSortBy === 'count' ? modelStats[0][1].count : modelSortBy === 'duration' ? modelStats[0][1].duration : (modelStats[0][1].totalDataRecorded || 0)}
+          {@const barValue = modelSortBy === 'count' ? stats.count : modelSortBy === 'duration' ? stats.duration : (stats.totalDataRecorded || 0)}
           <div class="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-surface-700 transition-colors">
             <span class="text-[10px] text-white/30 w-5 text-right shrink-0">{i + 1}</span>
             <div class="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style="background-color: {color}33;">
@@ -219,7 +241,7 @@
               <div class="w-20 h-1.5 bg-surface-900 rounded-full overflow-hidden shrink-0">
                 <div
                   class="h-full rounded-full transition-all duration-500"
-                  style="width: {(stats.count / maxCount) * 100}%; background-color: {color};"
+                  style="width: {maxValue > 0 ? (barValue / maxValue) * 100 : 0}%; background-color: {color};"
                 ></div>
               </div>
             </div>

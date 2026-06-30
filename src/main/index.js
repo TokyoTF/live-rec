@@ -480,7 +480,8 @@ app.whenReady().then(async () => {
           selresolution: rec.selresolution || null,
           provider_: rec.provider || args.provider,
           files: rec.files || [],
-          fileSize: recFileSize
+          fileSize: recFileSize,
+          startTime: rec.startTime || null
         })
       }
 
@@ -569,7 +570,8 @@ app.whenReady().then(async () => {
         provider_: rec?.provider || args.provider,
         files: rec?.files || [],
         fileSize: recFileSize,
-        totalSize: tool.getTotalRecordingSize()
+        totalSize: tool.getTotalRecordingSize(),
+        startTime: rec?.startTime || null
       })
     } catch (err) {
       Logger.error(`rec:live:status error (${args.nametag}):`, err.message)

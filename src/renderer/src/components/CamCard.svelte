@@ -28,6 +28,12 @@
   let showTagInput = $state(false)
   let tagWrapper = $state(null)
 
+  $effect(() => {
+    if (resolutions?.length > 0 && !localRecUrl) {
+      localRecUrl = resolutions[0].url
+    }
+  })
+
   let isFavorite = $derived($reclist.some(r => r.nametag === nametag && r.provider === provider && r.favorite === true))
   let statsPos = $state({ show: false, above: true, x: 0, y: 0 })
   let statsTipEl = $state(null)
@@ -237,9 +243,6 @@
             disabled={statusRec}
             class="flex-1 min-w-0 px-3 py-1.5 disabled:opacity-70 disabled:hover:bg-surface-600 rounded-full bg-surface-600 border border-surface-500 text-[11px] font-medium text-white/90 outline-none focus:border-accent-500 transition-all cursor-pointer hover:bg-surface-500"
           >
-            <option value="" disabled selected>
-              {resolutions[0]?.resolution.width}x{resolutions[0]?.resolution.height} {#if resolutions[0]?.fps}{resolutions[0]?.fps}fps{/if}
-            </option>
             {#each resolutions as res}
               <option value={res.url}>
                 {res.resolution.width}x{res.resolution.height} {#if res.fps}{res.fps}fps{/if}

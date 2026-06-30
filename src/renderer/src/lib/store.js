@@ -124,15 +124,17 @@ export function addToHistory(record) {
     updated.totalDuration += record.duration || 0
     updated.totalDataRecorded += record.fileSize || 0
     if (!updated.models[record.nametag]) {
-      updated.models[record.nametag] = { count: 0, duration: 0, provider: record.provider }
+      updated.models[record.nametag] = { count: 0, duration: 0, totalDataRecorded: 0, provider: record.provider }
     }
     updated.models[record.nametag].count++
     updated.models[record.nametag].duration += record.duration || 0
+    updated.models[record.nametag].totalDataRecorded += record.fileSize || 0
     if (!updated.providers[record.provider]) {
-      updated.providers[record.provider] = { count: 0, duration: 0 }
+      updated.providers[record.provider] = { count: 0, duration: 0, totalDataRecorded: 0 }
     }
     updated.providers[record.provider].count++
     updated.providers[record.provider].duration += record.duration || 0
+    updated.providers[record.provider].totalDataRecorded += record.fileSize || 0
     send('Modify:config', { name: 'alltimestats', value: updated })
     return updated
   })

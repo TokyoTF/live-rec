@@ -175,6 +175,7 @@
               <span class="text-xs font-bold text-white">{stats.count}</span>
               <span class="text-[10px] text-white/40"> recordings</span>
               <span class="text-[10px] text-white/30 ml-2">{formatDuration(stats.duration)}</span>
+              <span class="text-[10px] text-white/30 ml-2">{formatSize(stats.totalDataRecorded || 0)}</span>
             </div>
           </div>
         {/each}
@@ -210,6 +211,10 @@
               <div class="text-right w-16">
                 <div class="text-xs font-bold text-white">{formatDuration(stats.duration)}</div>
                 <div class="text-[10px] text-white/30">duration</div>
+              </div>
+              <div class="text-right w-20">
+                <div class="text-xs font-bold text-white">{formatSize(stats.totalDataRecorded || 0)}</div>
+                <div class="text-[10px] text-white/30">size</div>
               </div>
               <div class="w-20 h-1.5 bg-surface-900 rounded-full overflow-hidden shrink-0">
                 <div

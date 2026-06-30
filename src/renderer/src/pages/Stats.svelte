@@ -1,5 +1,5 @@
 <script>
-  import { recordingHistory, recordings, sessionRecordedToday, sessionTotalTime, sessionActiveTime, totalRecordingSize, onlineCount, recordingCount, totalCount, getProviderColor } from '@lib/store.js'
+  import { recordingHistory, recordings, sessionRecordedToday, sessionTotalTime, sessionActiveTime, totalRecordingSize, onlineCount, recordingCount, totalCount, getProviderColor, allTimeStats } from '@lib/store.js'
   import { BarChart3, Clock, HardDrive, Film, Activity, Globe, Heart, Database, User } from 'lucide-svelte'
 
   function formatDuration(ms) {
@@ -23,52 +23,31 @@
     return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
   }
 
-  let totalHistoryDuration = $derived(
-    $recordingHistory.reduce((sum, r) => sum + (r.duration || 0), 0)
-  )
-
-  let avgDuration = $derived(
-    $recordingHistory.length > 0 ? totalHistoryDuration / $recordingHistory.length : 0
-  )
-
-  let providerStats = $derived(() => {
-    const stats = {}
-    for (const r of $recordingHistory) {
-      if (!stats[r.provider]) stats[r.provider] = { count: 0, duration: 0 }
-      stats[r.provider].count++
-      stats[r.provider].duration += r.duration || 0
-    }
-    return Object.entries(stats).sort((a, b) => b[1].count - a[1].count)
-  })
-
   let todayDuration = $derived(
     $recordingHistory
       .filter(r => r.timestamp && new Date(r.timestamp).toDateString() === new Date().toDateString())
       .reduce((sum, r) => sum + (r.duration || 0), 0)
   )
 
-  let favoriteModel = $derived(() => {
-    const counts = {}
-    for (const r of $recordingHistory) {
-      counts[r.nametag] = (counts[r.nametag] || 0) + 1
-    }
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1])
-    return sorted.length > 0 ? sorted[0] : null
-  })
-
-  let totalDataRecorded = $derived(
-    $recordingHistory.reduce((sum, r) => sum + (r.fileSize || 0), 0)
+  let avgDuration = $derived(
+    $allTimeStats.totalSessions > 0 ? $allTimeStats.totalDuration / $allTimeStats.totalSessions : 0
   )
 
-  let modelStats = $derived(() => {
-    const stats = {}
-    for (const r of $recordingHistory) {
-      if (!stats[r.nametag]) stats[r.nametag] = { count: 0, duration: 0, provider: r.provider }
-      stats[r.nametag].count++
-      stats[r.nametag].duration += r.duration || 0
-    }
-    return Object.entries(stats).sort((a, b) => b[1].count - a[1].count)
+  let uniqueModels = $derived(Object.keys($allTimeStats.models || {}).length)
+
+  let favoriteModel = $derived(() => {
+    const entries = Object.entries($allTimeStats.models || {})
+    if (entries.length === 0) return null
+    return entries.sort((a, b) => b[1].count - a[1].count)[0]
   })
+
+  let providerStats = $derived(
+    Object.entries($allTimeStats.providers || {}).sort((a, b) => b[1].count - a[1].count)
+  )
+
+  let modelStats = $derived(
+    Object.entries($allTimeStats.models || {}).sort((a, b) => b[1].count - a[1].count)
+  )
 </script>
 
 <div class="flex-1 overflow-y-auto p-4 space-y-4">
@@ -106,7 +85,7 @@
         <Film size={14} class="text-blue-400" />
         <span class="text-[11px] text-white/50 font-medium">Total Sessions</span>
       </div>
-      <div class="text-2xl font-bold text-white">{$recordingHistory.length}</div>
+      <div class="text-2xl font-bold text-white">{$allTimeStats.totalSessions}</div>
       <div class="text-[10px] text-white/30 mt-1">all time</div>
     </div>
   </div>
@@ -136,7 +115,7 @@
     <div class="grid grid-cols-3 gap-4">
       <div>
         <div class="text-[11px] text-white/40 mb-1">Total Duration</div>
-        <div class="text-lg font-bold text-white">{formatDuration(totalHistoryDuration)}</div>
+        <div class="text-lg font-bold text-white">{formatDuration($allTimeStats.totalDuration)}</div>
       </div>
       <div>
         <div class="text-[11px] text-white/40 mb-1">Average Duration</div>
@@ -144,7 +123,7 @@
       </div>
       <div>
         <div class="text-[11px] text-white/40 mb-1">Unique Models</div>
-        <div class="text-lg font-bold text-white">{new Set($recordingHistory.map(r => r.nametag)).size}</div>
+        <div class="text-lg font-bold text-white">{uniqueModels}</div>
       </div>
     </div>
     <div class="grid grid-cols-2 gap-4 mt-4 pt-4 border-t border-white/5">
@@ -154,7 +133,7 @@
           <div class="text-[11px] text-white/40 mb-1">Favorite Model</div>
           {#if favoriteModel()}
             <div class="text-lg font-bold text-white">{favoriteModel()[0]}</div>
-            <div class="text-[10px] text-white/30">{favoriteModel()[1]} recordings</div>
+            <div class="text-[10px] text-white/30">{favoriteModel()[1].count} recordings</div>
           {:else}
             <div class="text-lg font-bold text-white/30">—</div>
           {/if}
@@ -164,7 +143,7 @@
         <Database size={16} class="text-cyan-400 shrink-0" />
         <div>
           <div class="text-[11px] text-white/40 mb-1">Total Data Recorded</div>
-          <div class="text-lg font-bold text-white">{formatSize(totalDataRecorded)}</div>
+          <div class="text-lg font-bold text-white">{formatSize($allTimeStats.totalDataRecorded)}</div>
           <div class="text-[10px] text-white/30">all sessions</div>
         </div>
       </div>
@@ -172,13 +151,13 @@
   </div>
 
   <!-- Per Provider Stats -->
-  {#if providerStats().length > 0}
+  {#if providerStats.length > 0}
     <div class="p-4 rounded-xl bg-surface-800 border border-white/5">
       <h3 class="text-xs font-bold text-white/60 uppercase tracking-widest mb-3">By Provider</h3>
       <div class="space-y-2">
-        {#each providerStats() as [provider, stats]}
+        {#each providerStats as [provider, stats]}
           {@const color = getProviderColor(provider)}
-          {@const maxCount = providerStats()[0][1].count}
+          {@const maxCount = providerStats[0][1].count}
           <div class="flex items-center gap-3">
             <span
               class="text-[10px] font-semibold px-1.5 py-0.5 rounded-md w-24 text-center shrink-0"
@@ -204,16 +183,16 @@
   {/if}
 
   <!-- Model List -->
-  {#if modelStats().length > 0}
+  {#if modelStats.length > 0}
     <div class="p-4 rounded-xl bg-surface-800 border border-white/5">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-xs font-bold text-white/60 uppercase tracking-widest">Models</h3>
-        <span class="text-[10px] text-white/30">{modelStats().length} models</span>
+        <span class="text-[10px] text-white/30">{modelStats.length} models</span>
       </div>
       <div class="space-y-1 max-h-80 overflow-y-auto">
-        {#each modelStats() as [nametag, stats], i}
+        {#each modelStats as [nametag, stats], i}
           {@const color = getProviderColor(stats.provider)}
-          {@const maxCount = modelStats()[0][1].count}
+          {@const maxCount = modelStats[0][1].count}
           <div class="flex items-center gap-3 px-2 py-1.5 rounded-lg hover:bg-surface-700 transition-colors">
             <span class="text-[10px] text-white/30 w-5 text-right shrink-0">{i + 1}</span>
             <div class="w-6 h-6 rounded-full flex items-center justify-center shrink-0" style="background-color: {color}33;">

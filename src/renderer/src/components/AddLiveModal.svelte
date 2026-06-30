@@ -6,19 +6,23 @@
     addRecording, notify
   } from '@lib/store.js'
   import { send, on } from '@lib/ipc.js'
-  import { onDestroy } from 'svelte'
+  import { onMount, onDestroy } from 'svelte'
   import { tooltip } from '@lib/tooltip.js'
 
-  let unsub = on('Models:imported', (_e, lines) => {
-    let addCount = 0
-    lines.forEach(line => {
-      const p = parseStreamInput(line)
-      if (p.nametag && p.provider) {
-        if(addRecording(p.provider, p.nametag, groupName)) addCount++
-      }
+  let unsub
+
+  onMount(() => {
+    unsub = on('Models:imported', (_e, lines) => {
+      let addCount = 0
+      lines.forEach(line => {
+        const p = parseStreamInput(line)
+        if (p.nametag && p.provider) {
+          if(addRecording(p.provider, p.nametag, groupName)) addCount++
+        }
+      })
+      close()
+      if (addCount > 0) notify(`Successfully imported ${addCount} cameras`, 'success')
     })
-    close()
-    if (addCount > 0) notify(`Successfully imported ${addCount} cameras`, 'success')
   })
 
   onDestroy(() => {

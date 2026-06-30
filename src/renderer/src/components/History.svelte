@@ -1,7 +1,7 @@
 <script>
   import { recordingHistory, getProviderColor, saveConfig } from '@lib/store.js'
   import { invoke } from '@lib/ipc.js'
-  import { Film, Clock, Trash2 } from 'lucide-svelte'
+  import { Film, Clock, Trash2, HardDrive } from 'lucide-svelte'
 
   function formatDate(ts) {
     const d = new Date(ts)
@@ -24,6 +24,14 @@
     if (m > 0) parts.push(`${m}m`)
     if (s > 0 || parts.length === 0) parts.push(`${s}s`)
     return parts.join(' ')
+  }
+
+  function formatSize(bytes) {
+    if (!bytes || bytes <= 0) return '0 B'
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+    return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
   }
 
   function clearHistory() {
@@ -75,6 +83,11 @@
               <span>End Time: {formatDate(record.timestamp)}</span>
               <span class="text-white/30">•</span>
               <span>Recording Duration: {formatDuration(record.duration)}</span>
+              {#if record.fileSize}
+                <span class="text-white/30">•</span>
+                <HardDrive size={12} />
+                <span>{formatSize(record.fileSize)}</span>
+              {/if}
             </div>
           </div>
         </div>

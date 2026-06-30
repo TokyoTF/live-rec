@@ -95,6 +95,14 @@ export const providers = writable([])
 
 export const recordingHistory = writable([])
 
+export const allTimeStats = writable({
+  totalSessions: 0,
+  totalDuration: 0,
+  totalDataRecorded: 0,
+  models: {},
+  providers: {}
+})
+
 export function addToHistory(record) {
   let newHistory
   recordingHistory.update(h => {
@@ -108,6 +116,25 @@ export function addToHistory(record) {
   send('Modify:config', {
     name: 'recordinghistory',
     value: newHistory
+  })
+
+  allTimeStats.update(s => {
+    const updated = { ...s }
+    updated.totalSessions++
+    updated.totalDuration += record.duration || 0
+    updated.totalDataRecorded += record.fileSize || 0
+    if (!updated.models[record.nametag]) {
+      updated.models[record.nametag] = { count: 0, duration: 0, provider: record.provider }
+    }
+    updated.models[record.nametag].count++
+    updated.models[record.nametag].duration += record.duration || 0
+    if (!updated.providers[record.provider]) {
+      updated.providers[record.provider] = { count: 0, duration: 0 }
+    }
+    updated.providers[record.provider].count++
+    updated.providers[record.provider].duration += record.duration || 0
+    send('Modify:config', { name: 'alltimestats', value: updated })
+    return updated
   })
 }
 
@@ -216,6 +243,7 @@ export function saveConfig() {
       { name: 'maxproxytry', value: get(maxproxytry) },
       { name: 'devmode', value: get(devmode) },
       { name: 'recordinghistory', value: get(recordingHistory) },
+      { name: 'alltimestats', value: get(allTimeStats) },
       { name: 'reclist', value: get(reclist) }
     ]
   })
@@ -384,29 +412,6 @@ async function downloadThumbnail(url) {
 }
 
 export function stopRec(nametag, provider, resolutions) {
-  const $recs = get(recordings)
-  const index = $recs.findIndex(item => item.nametag === nametag && item.provider === provider)
-  let recordedDuration = 0
-  if (index !== -1) {
-    recordedDuration = $recs[index].timeRec || 0
-    const thumb = $recs[index].thumb || ''
-    recordings.update(r => {
-      const draft = [...r]
-      draft[index].timeRec = 0
-      draft[index].timeFormat = '0 s'
-      return draft
-    })
-
-    downloadThumbnail(thumb).then(thumbPath => {
-      addToHistory({
-        nametag,
-        provider,
-        duration: recordedDuration,
-        thumb: thumbPath || thumb,
-        fileSize: draft[index]?.fileSize || 0
-      })
-    })
-  }
   send('rec:live:status', {
     status: 'online',
     nametag,
@@ -552,6 +557,7 @@ export function init() {
       isDev.set(args.isDev ?? false)
       providers.set(args.providers || [])
       recordingHistory.set(args.recordinghistory || [])
+      allTimeStats.set(args.alltimestats || { totalSessions: 0, totalDuration: 0, totalDataRecorded: 0, models: {}, providers: {} })
       reclist.set(args.reclist || [])
       setOrderByStatus(args.orderby === 'status')
       loadFromConfig(args.reclist || [])
@@ -608,6 +614,7 @@ export function init() {
           const isPaused = !!args.paused
           const wasRecording = draft[idx].statusRec
           const finalDuration = draft[idx].timeRec || 0
+          const finalFileSize = args.fileSize || 0
           const newTimeRec = isRecording ? (args.timeRec != null ? args.timeRec : (draft[idx].timeRec || 0)) : 0
           if (args.status === false && wasRecording && finalDuration > 0) {
             downloadThumbnail(draft[idx].thumb).then(thumbPath => {
@@ -616,7 +623,7 @@ export function init() {
                 provider: args.provider,
                 duration: finalDuration,
                 thumb: thumbPath || draft[idx].thumb,
-                fileSize: draft[idx]?.fileSize || 0
+                fileSize: finalFileSize
               })
             })
           }
@@ -666,7 +673,7 @@ export function init() {
         }
 
         if (args.data.status === 'online') {
-          if (draft[idx].paused) {
+          if (draft[idx].paused || (prevStatus === 'private' && draft[idx].startTime)) {
             console.log(`Resuming recording for ${args.nametag} after private`)
             startRec(args.nametag, args.provider, pickUrl(args.data.resolutions) || pickUrl(draft[idx].resolutions))
           } else if ((prevStatus === 'private' || prevStatus === 'offline')) {

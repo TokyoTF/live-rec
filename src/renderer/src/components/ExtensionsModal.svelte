@@ -2,7 +2,7 @@
   import { XIcon, PuzzleIcon, RefreshCwIcon, DownloadIcon, CheckIcon, LoaderIcon } from 'lucide-svelte'
   import { send, on } from '@lib/ipc.js'
   import { notify } from '@lib/store.js'
-  import { onDestroy } from 'svelte'
+  import { onMount, onDestroy } from 'svelte'
   import { tooltip } from '@lib/tooltip.js'
 
   let { showModal = $bindable(false), closeModal } = $props()
@@ -15,43 +15,45 @@
 
   const unsubs = []
 
-  unsubs.push(on('extensions:list', (_e, data) => {
-    extensions = data
-  }))
+  onMount(() => {
+    unsubs.push(on('extensions:list', (_e, data) => {
+      extensions = data
+    }))
 
-  unsubs.push(on('extensions:check-updates', (_e, data) => {
-    checking = false
-    updates = data.updates || []
-    if (data.updates?.length > 0) {
-      notify(`${data.updates.length} extension updates found`, 'info')
-    }
-  }))
+    unsubs.push(on('extensions:check-updates', (_e, data) => {
+      checking = false
+      updates = data.updates || []
+      if (data.updates?.length > 0) {
+        notify(`${data.updates.length} extension updates found`, 'info')
+      }
+    }))
 
-  unsubs.push(on('extensions:update', (_e, data) => {
-    updating = ''
-    if (data.success && data.extensions) {
-      extensions = data.extensions
-      updates = updates.filter(u => u.name !== data.name)
-      githubExtensions = githubExtensions.filter(g => g.name !== data.name)
-      notify(`${data.name} extension updated!`, 'success')
+    unsubs.push(on('extensions:update', (_e, data) => {
+      updating = ''
+      if (data.success && data.extensions) {
+        extensions = data.extensions
+        updates = updates.filter(u => u.name !== data.name)
+        githubExtensions = githubExtensions.filter(g => g.name !== data.name)
+        notify(`${data.name} extension updated!`, 'success')
 
-      setTimeout(() => {
-        send('window:reload')
-      }, 1000)
-    } else {
-      notify(`Failed to update ${data.name}: ${data.error}`, 'error')
-    }
-  }))
+        setTimeout(() => {
+          send('window:reload')
+        }, 1000)
+      } else {
+        notify(`Failed to update ${data.name}: ${data.error}`, 'error')
+      }
+    }))
 
-  unsubs.push(on('extensions:get-github-list', (_e, data) => {
-    loadingGithub = false
-    if (data.success) {
+    unsubs.push(on('extensions:get-github-list', (_e, data) => {
+      loadingGithub = false
+      if (data.success) {
 
-      githubExtensions = data.extensions.filter(g =>
-        !extensions.some(e => e.name.toLowerCase() === g.name.toLowerCase())
-      )
-    }
-  }))
+        githubExtensions = data.extensions.filter(g =>
+          !extensions.some(e => e.name.toLowerCase() === g.name.toLowerCase())
+        )
+      }
+    }))
+  })
 
   onDestroy(() => unsubs.forEach(u => u()))
 

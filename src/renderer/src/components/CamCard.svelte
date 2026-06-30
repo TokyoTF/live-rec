@@ -222,7 +222,14 @@
     </div>
 
     <!-- Recording controls -->
-    {#if (status === 'online' && resolutions?.length > 0 && !recoveryPending) || statusRec}
+    {#if status === 'online' && !resolutions?.length && !recoveryPending && !statusRec}
+      <div class="flex items-center gap-2 {$viewMode === 'grid' ? 'pt-1' : ''}">
+        <div class="flex items-center gap-1.5 text-[11px] text-white/40">
+          <div class="w-3 h-3 border-2 border-white/20 border-t-white/60 rounded-full animate-spin"></div>
+          <span>Loading stream...</span>
+        </div>
+      </div>
+    {:else if (status === 'online' && resolutions?.length > 0 && !recoveryPending) || statusRec}
       <div class="flex items-center gap-2 {$viewMode === 'grid' ? 'pt-1' : ''}">
         {#if $viewMode === 'grid' && resolutions?.length > 0}
           <select

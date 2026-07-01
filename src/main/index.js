@@ -414,20 +414,38 @@ app.whenReady().then(async () => {
       Logger.info(`Recovery URL: instance - ${info.status}/${url.status}/${url.nametag}`)
 
       if (url.status == 'online' || url.status == 'offline' || url.status == 'private') {
-        await tool.recInit({ nametag: args.name, provider: args.provider, dateformat, referer })
-        setTimeout(() => {
-          const recStatus = tool.getRecording(args.name, args.provider)
-          if (recStatus) {
-            url.statusRec = recStatus.statusRec
-            url.paused = recStatus.paused
-            url.timeRec = recStatus.statusRec ? recStatus.timeRec : 0
-            url.realtime = recStatus.realtime
-            url.codec = recStatus.codec
-            url.stats = recStatus.stats
-            url.force_type = instance.config.force_type
+        const existingRec = tool.getRecording(args.name, args.provider)
+        if (existingRec && existingRec.startTime && url.status === 'online') {
+          const streamUrl = url.resolutions?.length > 0 ? url.resolutions[0].url : null
+          if (streamUrl) {
+            Logger.info(`Recovery: starting recording for ${args.name} with fresh URL`)
+            await tool.rec(args.name, 'startRec', streamUrl, 'online', args.provider, dateformat, null, null, ffmpegparams, referer, true, '')
           }
+          const recStatus = tool.getRecording(args.name, args.provider)
+          url.statusRec = recStatus?.statusRec || false
+          url.paused = recStatus?.paused || false
+          url.timeRec = recStatus?.statusRec ? recStatus.timeRec : 0
+          url.realtime = recStatus?.realtime || false
+          url.codec = recStatus?.codec || null
+          url.stats = recStatus?.stats || null
+          url.force_type = instance.config.force_type
           event.reply('rec:recovery', { data: url, provider: args.provider })
-        }, 500)
+        } else {
+          await tool.recInit({ nametag: args.name, provider: args.provider, dateformat, referer })
+          setTimeout(() => {
+            const recStatus = tool.getRecording(args.name, args.provider)
+            if (recStatus) {
+              url.statusRec = recStatus.statusRec
+              url.paused = recStatus.paused
+              url.timeRec = recStatus.statusRec ? recStatus.timeRec : 0
+              url.realtime = recStatus.realtime
+              url.codec = recStatus.codec
+              url.stats = recStatus.stats
+              url.force_type = instance.config.force_type
+            }
+            event.reply('rec:recovery', { data: url, provider: args.provider })
+          }, 500)
+        }
       } else {
         event.reply('rec:recovery', { data: url, provider: args.provider })
       }
@@ -514,6 +532,9 @@ app.whenReady().then(async () => {
         } else if (args.provider === 'chaturbate' && instance.getStreamUrl) {
           const proxy = tool.assignProxyToStream(args.nametag, args.provider)
           const freshUrl = await instance.getStreamUrl(args.nametag, proxy, args.selresolution)
+          if (freshUrl) url = freshUrl
+        } else if (args.provider === 'stripchat' && instance.getStreamUrl) {
+          const freshUrl = await instance.getStreamUrl(args.nametag, args.selresolution)
           if (freshUrl) url = freshUrl
           } else {
             const fresh = await instance.extract(args.nametag)

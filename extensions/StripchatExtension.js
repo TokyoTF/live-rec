@@ -7,6 +7,7 @@ export default class StripchatExtension {
       color: '#ef4444',
       domain: 'stripchat.com',
       referer: true,
+      get_url_new: true,
       patterns: [
         'https://*.stripchat.com/*',
         'https://*.doppiocdn.live/*',
@@ -101,6 +102,18 @@ export default class StripchatExtension {
       thumb,
       force_type:'video/x-mpegUrl'
     })
+  }
+
+  async getStreamUrl(nametag, selresolution) {
+    const extracted = await this.extract(nametag)
+    if (!extracted?.resolutions?.length) return null
+
+    const resolutions = extracted.resolutions
+    if (selresolution) {
+      const match = resolutions.find(r => r.resolution === selresolution)
+      if (match) return match.url
+    }
+    return resolutions[0].url
   }
 
   async update(nametag) {

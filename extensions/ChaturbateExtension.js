@@ -1,5 +1,3 @@
-import CBProxy from '../lib/cbProxy.class.js'
-
 const IPAD_UA = 'Mozilla/5.0 (iPad; CPU OS 16_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Mobile/15E148 Safari/604.1'
 
 export default class ChaturbateExtension {
@@ -121,14 +119,9 @@ export default class ChaturbateExtension {
 
   async getStreamUrlForRec(nametag, proxy = '', selectedResolution = null) {
     try {
+      const CBProxy = this.extension.getCBProxy()
       const existing = CBProxy.getProxy(nametag)
-      if (existing && !existing.stopped) {
-        const proxyAge = Date.now() - (existing.createdAt || 0)
-        const MAX_PROXY_AGE = 30 * 60 * 1000
-        if (proxyAge < MAX_PROXY_AGE) {
-          return { url: existing.url }
-        }
-        console.log(`CBProxy too old (${Math.round(proxyAge / 1000)}s), recreating for ${nametag}`)
+      if (existing) {
         CBProxy.stopProxy(nametag)
       }
 
@@ -151,8 +144,7 @@ export default class ChaturbateExtension {
             if (fresh && fresh.success && fresh.url) return fresh.url
           } catch {}
           return null
-        },
-        selectedResolution
+        }
       )
 
       await cbProxy.start()

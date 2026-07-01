@@ -679,8 +679,9 @@ export function init() {
 
         if (args.data.status === 'online') {
           if (draft[idx].paused || (prevStatus === 'private' && draft[idx].startTime)) {
-            console.log(`Resuming recording for ${args.nametag} after private`)
-            startRec(args.nametag, args.provider, pickUrl(args.data.resolutions) || pickUrl(draft[idx].resolutions))
+            draft[idx]._recoveryPending = true
+            draft[idx]._resumeRecording = true
+            send('rec:recovery', { name: args.nametag, provider: args.provider })
           } else if ((prevStatus === 'private' || prevStatus === 'offline')) {
             draft[idx]._recoveryPending = true
             send('rec:recovery', { name: args.nametag, provider: args.provider })
@@ -699,6 +700,7 @@ export function init() {
     on('rec:recovery', (_event, args) => {
       const idx = findIndex(args.data.nametag, args.provider)
       if (idx === -1) return
+      const shouldResume = get(recordings)[idx]?._resumeRecording
       recordings.update(r => {
         const draft = [...r]
         draft[idx] = {
@@ -713,7 +715,9 @@ export function init() {
           resolutions: args.data.resolutions,
           thumb: args.data.thumb,
           group: args.data.group !== undefined ? args.data.group : draft[idx].group,
-          _recoveryPending: false
+          _recoveryPending: false,
+          _resumeRecording: false,
+          lastCheck: Date.now()
         }
         if (args.data.status === 'online' && get(autoRec)) {
           send('rec:auto', { nametag: args.data.nametag, provider: args.provider })
@@ -721,6 +725,14 @@ export function init() {
         return draft
       })
       sortRecordings()
+      if (args.data.status === 'online' && shouldResume && args.data.resolutions?.length) {
+        startRec(args.data.nametag, args.provider, pickUrl(args.data.resolutions))
+      }
+      if (args.data.status === 'online') {
+        setTimeout(() => {
+          send('res:status', { nametag: args.data.nametag, provider: args.provider })
+        }, 8000)
+      }
     })
 
     on('rec:auto', (_event, args) => {

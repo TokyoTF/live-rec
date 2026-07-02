@@ -118,44 +118,35 @@
 
   <!-- Toolbar -->
   <div class="relative flex items-center gap-4 px-4 py-3 border-b border-white/5">
-    <!-- Main tabs: Cameras, History -->
-    <div class="flex items-center gap-1">
+    <!-- Main tabs: Cameras, History, Stats -->
+    <div class="flex items-center gap-1 p-1 bg-surface-800 rounded-full border border-white/5 w-fit">
       <button
-        class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer rounded-full {activeTab === 'cameras'
-          ? 'bg-white text-black'
-          : 'bg-surface-700 text-white hover:bg-surface-600'}"
+        class="px-4 py-1.5 text-[11px] font-bold rounded-full transition-all cursor-pointer {activeTab === 'cameras' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}"
         onclick={() => activeTab = 'cameras'}
       >
-        <Video size={12} />
-        Cameras
+        <span class="flex items-center gap-1.5"><Video size={12} /> Cameras</span>
       </button>
       <button
-        class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer rounded-full {activeTab === 'history'
-          ? 'bg-white text-black'
-          : 'bg-surface-700 text-white hover:bg-surface-600'}"
+        class="px-4 py-1.5 text-[11px] font-bold rounded-full transition-all cursor-pointer {activeTab === 'history' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}"
         onclick={() => activeTab = 'history'}
       >
-        <Film size={12} />
-        History
+        <span class="flex items-center gap-1.5"><Film size={12} /> History</span>
       </button>
       <button
-        class="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer rounded-full {activeTab === 'stats'
-          ? 'bg-white text-black'
-          : 'bg-surface-700 text-white hover:bg-surface-600'}"
+        class="px-4 py-1.5 text-[11px] font-bold rounded-full transition-all cursor-pointer {activeTab === 'stats' ? 'bg-white/10 text-white' : 'text-white/40 hover:text-white/60'}"
         onclick={() => activeTab = 'stats'}
       >
-        <BarChart3 size={12} />
-        Stats
+        <span class="flex items-center gap-1.5"><BarChart3 size={12} /> Stats</span>
       </button>
     </div>
 
     <!-- Filter tabs: All, Online, Recording, Offline -->
-    <div class="flex items-center gap-1.5">
+    <div class="flex items-center gap-1 p-1 bg-surface-800 rounded-full border border-white/5 w-fit">
       {#each filterTabs as tab}
         <button
-          class="px-3.5 py-1.5 text-xs font-bold transition-all cursor-pointer rounded-full {filter === tab.key
-            ? 'bg-white text-black'
-            : 'bg-surface-700 text-white hover:bg-surface-600'}"
+          class="px-3 py-1.5 text-[11px] font-bold rounded-full transition-all cursor-pointer {filter === tab.key
+            ? 'bg-white/10 text-white'
+            : 'text-white/40 hover:text-white/60'}"
           onclick={() => filter = tab.key}
         >
           {tab.label}

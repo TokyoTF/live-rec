@@ -615,6 +615,65 @@ app.whenReady().then(async () => {
     event.reply('rec:auto')
   })
 
+  // Calendar persistence
+  const CalendarFile = join(FolderMain, 'calendar.json')
+
+  function loadCalendar() {
+    try {
+      if (existsSync(CalendarFile)) {
+        return JSON.parse(readFileSync(CalendarFile, 'utf-8'))
+      }
+    } catch (err) {
+      Logger.error('Failed to load calendar.json:', err.message)
+    }
+    return { onlineEvents: [] }
+  }
+
+  function saveCalendar(data) {
+    try {
+      if (!existsSync(FolderMain)) mkdirSync(FolderMain, { recursive: true })
+      writeFileSync(CalendarFile, JSON.stringify(data, null, 2))
+    } catch (err) {
+      Logger.error('Failed to save calendar.json:', err.message)
+    }
+  }
+
+  ipcMain.on('calendar:load', (event) => {
+    event.reply('calendar:load', loadCalendar())
+  })
+
+  ipcMain.on('calendar:track', (event, args) => {
+    const data = loadCalendar()
+    const { nametag, provider, status, timestamp } = args
+
+    if (status === 'online') {
+      const openEvent = data.onlineEvents.find(
+        e => e.nametag === nametag && e.provider === provider && !e.offlineAt
+      )
+      if (!openEvent) {
+        data.onlineEvents.push({
+          nametag,
+          provider,
+          onlineAt: timestamp,
+          offlineAt: null
+        })
+      }
+    } else if (status === 'offline' || status === 'private') {
+      const openEvent = data.onlineEvents.find(
+        e => e.nametag === nametag && e.provider === provider && !e.offlineAt
+      )
+      if (openEvent) {
+        openEvent.offlineAt = timestamp
+      }
+    }
+
+    if (data.onlineEvents.length > 5000) {
+      data.onlineEvents = data.onlineEvents.slice(-5000)
+    }
+
+    saveCalendar(data)
+  })
+
   ipcMain.on('log:open', () => {
     if (existsSync(LogFile)) {
       shell.openPath(LogFile)

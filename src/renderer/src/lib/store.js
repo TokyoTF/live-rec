@@ -103,6 +103,16 @@ export const allTimeStats = writable({
   providers: {}
 })
 
+export const calendarData = writable({ onlineEvents: [] })
+
+export function trackOnlineStatus(nametag, provider, status) {
+  send('calendar:track', { nametag, provider, status, timestamp: Date.now() })
+}
+
+export function loadCalendarData() {
+  send('calendar:load')
+}
+
 export function addToHistory(record) {
   let newHistory
   recordingHistory.update(h => {
@@ -555,6 +565,11 @@ export function init() {
       reclist.set(args.reclist || [])
       setOrderByStatus(args.orderby === 'status')
       loadFromConfig(args.reclist || [])
+
+      on('calendar:load', (_event, args) => {
+        calendarData.set(args || { onlineEvents: [] })
+      })
+      loadCalendarData()
     })
 
     on('Select:Folder', (_event, args) => {
@@ -596,6 +611,10 @@ export function init() {
             return draft
           })
           send('rec:recovery', { name: args.data.nametag, provider: args.provider })
+        }
+
+        if (args.data.status === 'online' || args.data.status === 'offline') {
+          trackOnlineStatus(args.data.nametag, args.provider, args.data.status)
         }
       }
       sortRecordings()
@@ -659,9 +678,10 @@ export function init() {
 
       if (idx === -1) return
 
+      const prevStatus = get(recordings)[idx]?.status
+
       recordings.update(r => {
         const draft = [...r]
-        const prevStatus = draft[idx].status
         const group = args.data.group !== undefined ? args.data.group : draft[idx].group
         draft[idx] = {
           ...draft[idx],
@@ -695,6 +715,10 @@ export function init() {
         return draft
       })
       sortRecordings()
+
+      if (args.data.status !== prevStatus) {
+        trackOnlineStatus(args.nametag, args.provider, args.data.status)
+      }
     })
 
     on('rec:recovery', (_event, args) => {

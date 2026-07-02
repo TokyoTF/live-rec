@@ -91,6 +91,8 @@ export const useragent = writable('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:
 export const recQuality = writable('best')
 export const extBranch = writable('main')
 export const maxproxytry = writable(3)
+export const mkvmergePath = writable('')
+export const mkvmergeEnabled = writable(true)
 export const providers = writable([])
 
 export const recordingHistory = writable([])
@@ -214,10 +216,12 @@ export function setUserAgent(v) { useragent.set(v); saveConfig() }
 export function setRecQuality(v) { recQuality.set(v); saveConfig() }
 export function setExtBranch(v) { extBranch.set(v); saveConfig() }
 export function setMaxProxyTry(v) { maxproxytry.set(v); saveConfig() }
+export function setMkvmergeEnabled(v) { mkvmergeEnabled.set(v); saveConfig() }
 
 // Config Methods
 export function selectFolder() { send('Select:Folder', { type: 'folder' }) }
 export function selectFFmpeg() { send('Select:Folder', { type: 'file' }) }
+export function selectMkvmerge() { send('Select:Folder', { type: 'mkvmerge' }) }
 export function openLogs() { send('log:open') }
 export function selectProxyList() { send('Select:Folder', { type: 'proxylist' }) }
 export function syncDevExtensions() { send('extensions:sync-dev') }
@@ -253,6 +257,8 @@ export function saveConfig() {
       { name: 'recquality', value: get(recQuality) },
       { name: 'extbranch', value: get(extBranch) },
       { name: 'maxproxytry', value: get(maxproxytry) },
+      { name: 'mkvmergepath', value: get(mkvmergePath) },
+      { name: 'mkvmergenable', value: get(mkvmergeEnabled) },
       { name: 'devmode', value: get(devmode) },
       { name: 'recordinghistory', value: get(recordingHistory) },
       { name: 'alltimestats', value: get(allTimeStats) },
@@ -557,6 +563,8 @@ export function init() {
       recQuality.set(args.recquality || 'best')
       extBranch.set(args.extbranch || 'main')
       maxproxytry.set(args.maxproxytry ?? 3)
+      mkvmergePath.set(args.mkvmergepath || '')
+      mkvmergeEnabled.set(args.mkvmergenable ?? true)
       devmode.set(args.devmode ?? false)
       isDev.set(args.isDev ?? false)
       providers.set(args.providers || [])
@@ -574,6 +582,7 @@ export function init() {
 
     on('Select:Folder', (_event, args) => {
       if (args.ffmpeg) ffmpegPath.set(args.ffmpeg)
+      if (args.mkvmerge) mkvmergePath.set(args.mkvmerge)
       if (args.svfolder) saveFolder.set(args.svfolder)
       if (args.proxylist) proxyList.set(args.proxylist)
     })
@@ -604,15 +613,6 @@ export function init() {
           return draft
         })
 
-        if (args.data.status === 'online' && !args.data.resolutions?.length) {
-          recordings.update(r => {
-            const draft = [...r]
-            draft[idx]._recoveryPending = true
-            return draft
-          })
-          send('rec:recovery', { name: args.data.nametag, provider: args.provider })
-        }
-
         if (args.data.status === 'online' || args.data.status === 'offline') {
           trackOnlineStatus(args.data.nametag, args.provider, args.data.status)
         }
@@ -627,13 +627,24 @@ export function init() {
       notify(args.error, 'error', 7000)
     })
 
+    on('rec:concat', (_event, args) => {
+      const idx = findIndex(args.nametag, args.provider)
+      if (idx !== -1) {
+        recordings.update(r => {
+          const draft = [...r]
+          draft[idx] = { ...draft[idx], concat: args.status === 'start' ? args.fileCount : false }
+          return draft
+        })
+      }
+    })
+
     on('rec:live:status', (_event, args) => {
       if (args.totalSize != null) totalRecordingSize.set(args.totalSize)
       const idx = findIndex(args.nametag, args.provider)
       if (idx !== -1) {
         recordings.update(r => {
           const draft = [...r]
-          const isRecording = !!args.status
+          const isRecording = args.status === 'waiting' ? 'waiting' : !!args.status
           const isPaused = !!args.paused
           const wasRecording = draft[idx].statusRec
           const finalDuration = draft[idx].timeRec || 0
@@ -665,7 +676,9 @@ export function init() {
             recProvider: args.provider_ || draft[idx].recProvider || null,
             recFiles: args.files || draft[idx].recFiles || [],
             fileSize: args.fileSize || 0,
-            startTime: args.startTime || draft[idx].startTime || null
+            startTime: args.startTime || draft[idx].startTime || null,
+            retryCount: args.retryCount ?? null,
+            retryMax: args.retryMax ?? null
           }
           return draft
         })
@@ -679,6 +692,8 @@ export function init() {
       if (idx === -1) return
 
       const prevStatus = get(recordings)[idx]?.status
+      const cur = get(recordings)[idx]
+      console.log(`[STORE] res:status: ${args.nametag} prevStatus=${prevStatus} newStatus=${args.data.status} resolutions=${args.data.resolutions?.length || cur?.resolutions?.length || 0} _recoveryPending=${cur?._recoveryPending} _recoveryLastAttempt=${cur?._recoveryLastAttempt || 0} statusRec=${cur?.statusRec}`)
 
       recordings.update(r => {
         const draft = [...r]
@@ -690,7 +705,8 @@ export function init() {
           url: args.data.url || draft[idx].url,
           resolutions: args.data.resolutions || draft[idx].resolutions,
           group: group,
-          _recoveryPending: false
+          _recoveryPending: draft[idx]._recoveryPending || false,
+          _recoveryLastAttempt: draft[idx]._recoveryLastAttempt || 0
         }
 
         if (currentView.nametag === args.nametag && (args.data.status === 'offline' || args.data.status === 'private')) {
@@ -698,16 +714,28 @@ export function init() {
         }
 
         if (args.data.status === 'online') {
+          const now = Date.now()
+          const lastAttempt = draft[idx]._recoveryLastAttempt || 0
+          const cooldownMs = 30000
           if (draft[idx].paused || (prevStatus === 'private' && draft[idx].startTime)) {
-            draft[idx]._recoveryPending = true
-            draft[idx]._resumeRecording = true
-            send('rec:recovery', { name: args.nametag, provider: args.provider })
+            if (!draft[idx]._recoveryPending) {
+              draft[idx]._recoveryPending = true
+              draft[idx]._resumeRecording = true
+              draft[idx]._recoveryLastAttempt = now
+              send('rec:recovery', { name: args.nametag, provider: args.provider })
+            }
           } else if ((prevStatus === 'private' || prevStatus === 'offline')) {
-            draft[idx]._recoveryPending = true
-            send('rec:recovery', { name: args.nametag, provider: args.provider })
+            if (!draft[idx]._recoveryPending && (now - lastAttempt > cooldownMs)) {
+              draft[idx]._recoveryPending = true
+              draft[idx]._recoveryLastAttempt = now
+              send('rec:recovery', { name: args.nametag, provider: args.provider })
+            }
           } else if (!draft[idx].resolutions?.length && !draft[idx].statusRec) {
-            draft[idx]._recoveryPending = true
-            send('rec:recovery', { name: args.nametag, provider: args.provider })
+            if (!draft[idx]._recoveryPending && (now - lastAttempt > cooldownMs)) {
+              draft[idx]._recoveryPending = true
+              draft[idx]._recoveryLastAttempt = now
+              send('rec:recovery', { name: args.nametag, provider: args.provider })
+            }
           } else if (get(autoRec) && !draft[idx].statusRec) {
             send('rec:auto', { nametag: args.nametag, provider: args.provider })
           }
@@ -724,6 +752,7 @@ export function init() {
     on('rec:recovery', (_event, args) => {
       const idx = findIndex(args.data.nametag, args.provider)
       if (idx === -1) return
+      console.log(`[STORE] rec:recovery received: ${args.data.nametag} status=${args.data.status} resolutions=${args.data.resolutions?.length || 0} url=${(args.data.url || '').substring(0, 80)}`)
       const shouldResume = get(recordings)[idx]?._resumeRecording
       recordings.update(r => {
         const draft = [...r]

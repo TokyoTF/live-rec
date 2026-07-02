@@ -20,7 +20,10 @@
     outputPath,
     recUrl,
     recResolution,
-    recProvider
+    recProvider,
+    retryCount = null,
+    retryMax = null,
+    concat = false
   } = $props()
 
   let localRecUrl = $state('')
@@ -241,9 +244,12 @@
               {/if}
             </div>
           {/if}
-          {#if statusRec === 'waiting'}
+          {#if concat}
+            <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+            <span class="text-[11px] text-purple-400">Concatenating {concat} files...</span>
+          {:else if statusRec === 'waiting'}
             <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
-            <span class="text-[11px] text-yellow-500">Waiting...</span>
+            <span class="text-[11px] text-yellow-500">{#if retryCount != null && retryMax != null}Reconnecting {retryCount}/{retryMax}{:else}Waiting...{/if}</span>
           {:else}
             <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording'}"></span>
             {timeRec || '0 s'}{paused ? ' - paused' : ''}
@@ -321,9 +327,12 @@
               {/if}
             </div>
           {/if}
-          {#if statusRec === 'waiting'}
+          {#if concat}
+            <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+            <span class="text-purple-400">Concatenating {concat} files...</span>
+          {:else if statusRec === 'waiting'}
             <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
-            <span class="text-yellow-500">Waiting...</span>
+            <span class="text-yellow-500">{#if retryCount != null && retryMax != null}Reconnecting {retryCount}/{retryMax}{:else}Waiting...{/if}</span>
           {:else}
             <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording pulse-recording'}"></span>
             {timeRec || '0 s'}{paused ? ' - paused' : ''}

@@ -273,6 +273,9 @@
             recUrl={item.recUrl}
             recResolution={item.recResolution}
             recProvider={item.recProvider}
+            retryCount={item.retryCount}
+            retryMax={item.retryMax}
+            concat={item.concat}
           />
         {/if}
       {/each}

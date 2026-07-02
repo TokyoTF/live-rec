@@ -239,6 +239,8 @@ function createWindow() {
     const data = {
       savefolder: '',
       ffmpegselect: '',
+      mkvmergepath: '',
+      mkvmergenable: true,
       naspath: '',
       autorec: false,
       autocreatefolder: false,
@@ -760,12 +762,13 @@ app.whenReady().then(async () => {
 
   ipcMain.on('Select:Folder', (event, args) => {
     let localselffmpeg = ''
+    let localselmkvmerge = ''
     let localsavefolder = ''
     let localselproxylist = ''
     try {
       const typeOpen = dialog.showOpenDialogSync({
         properties: [
-          args.type == 'file' || args.type == 'proxylist'
+          args.type == 'file' || args.type == 'proxylist' || args.type == 'mkvmerge'
             ? 'openFile'
             : args.type == 'folder'
               ? 'openDirectory'
@@ -782,6 +785,9 @@ app.whenReady().then(async () => {
         if (args.type == 'file') {
           localselffmpeg = selectedPath
           tool.modifyjson({ raw: { name: 'ffmpegselect', value: selectedPath } })
+        } else if (args.type == 'mkvmerge') {
+          localselmkvmerge = selectedPath
+          tool.modifyjson({ raw: { name: 'mkvmergepath', value: selectedPath } })
         } else if (args.type == 'folder') {
           localsavefolder = selectedPath
           tool.modifyjson({ raw: { name: 'savefolder', value: selectedPath } })
@@ -791,6 +797,7 @@ app.whenReady().then(async () => {
         }
         event.reply('Select:Folder', {
           ffmpeg: localselffmpeg,
+          mkvmerge: localselmkvmerge,
           svfolder: localsavefolder,
           proxylist: localselproxylist
         })

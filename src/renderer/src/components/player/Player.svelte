@@ -149,7 +149,12 @@
       </span>
     </div>
     <div class="flex gap-2 items-center ml-auto">
-    {#if currentRec?.statusRec === true}
+    {#if currentRec?.concat}
+      <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-purple-500/30">
+        <span class="w-1 h-1 rounded-full bg-purple-500 animate-pulse"></span>
+        <span class="text-[9px] font-bold text-purple-400 tracking-wider">CONCAT</span>
+      </div>
+    {:else if currentRec?.statusRec === true}
       <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-recording/30">
         <span class="w-1 h-1 rounded-full bg-recording"></span>
         <span class="text-[9px] font-bold text-white tracking-wider">REC</span>

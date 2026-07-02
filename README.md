@@ -216,6 +216,14 @@ The app stores its configuration at `Documents/live-rec/config.json`.
 > [!TIP]
 > MKV is the default format because it is **resilient**. If a recording is interrupted — whether by a network drop, a crash, or a model going private — the file remains playable. MP4 files, in contrast, often become completely unreadable if not finalized correctly.
 
+> [!WARNING]
+> **Pause on Private / Concatenation**
+> If you enable **Pause on Private**, the app will pause the recording when a model goes private and resume when they come back public. After that, it concatenates all segments into a single file. This process **consumes CPU and disk I/O** — especially with large files or many segments.
+>
+> - If your PC struggles or you are low on storage, **consider disabling Pause on Private** to avoid heavy concatenation overhead.
+> - For faster MKV concatenation, install [MKVToolNix](https://mkvtoolnix.download/) (`mkvmerge`). The app will automatically use it for MKV files instead of ffmpeg, which is significantly faster for large files. You can set the path in **Settings** or leave it auto-detected if `mkvmerge` is in your PATH.
+> - For other formats (MP4, TS), ffmpeg is used by default.
+
 ---
 
 ## Troubleshooting

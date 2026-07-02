@@ -19,6 +19,7 @@
     isSettingsOpen, closeSettings,
     openLogs,
     isDev, devmode, setDevMode, syncDevExtensions,
+    mkvmergePath, mkvmergeEnabled, setMkvmergeEnabled, selectMkvmerge,
     DATE_FORMATS, providers
   } from '@lib/store.js'
   import {
@@ -92,6 +93,38 @@
                 Select
               </button>
             </div>
+
+            <!-- MKVMerge Toggle -->
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5">
+              <FileIcon size={16} class="text-green-400 shrink-0" />
+              <div class="flex-1 min-w-0">
+                <p class="text-[11px] text-white/40 mb-0.5">Use MKVMerge for MKV concat</p>
+                <p class="text-[10px] text-white/30">Faster concat for MKV files (requires MKVToolNix)</p>
+              </div>
+              <button
+                class="px-3 py-1 rounded-full border text-xs font-medium transition-all cursor-pointer {$mkvmergeEnabled ? 'bg-green-500/20 border-green-500/40 text-green-400' : 'bg-surface-700 border-white/8 text-white/50'}"
+                onclick={() => setMkvmergeEnabled(!$mkvmergeEnabled)}
+              >
+                {$mkvmergeEnabled ? 'ON' : 'OFF'}
+              </button>
+            </div>
+
+            <!-- MKVMerge Path -->
+            {#if $mkvmergeEnabled}
+              <div class="flex items-center gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5">
+                <FileIcon size={16} class="text-green-400 shrink-0" />
+                <div class="flex-1 min-w-0">
+                  <p class="text-[11px] text-white/40 mb-0.5">MKVMerge Binary (optional)</p>
+                  <p class="text-xs text-white/70 truncate">{$mkvmergePath || 'Auto-detect (mkvmerge in PATH)'}</p>
+                </div>
+                <button
+                  class="px-4 py-1.5 rounded-full bg-surface-700 hover:bg-surface-600 border border-white/8 text-xs font-medium text-white/70 hover:text-white/90 transition-all cursor-pointer"
+                  onclick={selectMkvmerge}
+                >
+                  Select
+                </button>
+              </div>
+            {/if}
           </div>
         </section>
 

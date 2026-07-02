@@ -26,7 +26,8 @@ export default class ChaturbateExtension {
         'X-Requested-With': 'XMLHttpRequest',
         'Content-Type': 'application/x-www-form-urlencoded',
         'Accept': 'application/json',
-        'User-Agent': IPAD_UA
+        'User-Agent': IPAD_UA,
+        'Referer': `https://chaturbate.com/${nametag}/`
       },
       body
     })

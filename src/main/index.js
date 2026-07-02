@@ -250,7 +250,8 @@ function createWindow() {
       updatetime: 25,
       reclist: [],
       extbranch: 'main',
-      maxproxytry: 3
+      maxproxytry: 3,
+      concatonresume: true
     }
     writeFileSync(FolderMain + '/config.json', JSON.stringify(data, null, ' '))
   }

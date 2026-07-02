@@ -12,6 +12,7 @@
     maxproxytry, setMaxProxyTry,
     recFormat, setRecFormat, openSaveFolder,
     pauseForPrivate, setPauseForPrivate,
+    concatOnResume, setConcatOnResume,
     useragent, setUserAgent,
     recQuality, setRecQuality,
     extBranch, setExtBranch,
@@ -273,6 +274,23 @@
                   <span class="slider"></span>
                 </div>
               </label>
+
+              {#if $pauseForPrivate}
+                <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5">
+                  <div>
+                    <p class="text-xs text-white/70">Concat segments on resume</p>
+                    <p class="text-[10px] text-white/30">Merge files after pause/resume</p>
+                  </div>
+                  <select
+                    class="bg-surface-700 border border-white/10 rounded-lg px-2 py-1 text-xs text-white/80 cursor-pointer"
+                    value={$concatOnResume ? 'yes' : 'no'}
+                    onchange={(e) => setConcatOnResume(e.target.value === 'yes')}
+                  >
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+              {/if}
 
               <label class="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5 cursor-pointer group hover:bg-surface-700/50 transition-all">
                 <div>

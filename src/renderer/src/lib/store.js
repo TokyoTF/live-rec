@@ -87,6 +87,7 @@ export const minimizeToTray = writable(false)
 export const proxyList = writable('')
 export const recFormat = writable('mkv')
 export const pauseForPrivate = writable(true)
+export const concatOnResume = writable(true)
 export const useragent = writable('Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0')
 export const recQuality = writable('best')
 export const extBranch = writable('main')
@@ -180,6 +181,7 @@ export function getProxyList() { return get(proxyList) }
 export function getRecFormat() { return get(recFormat) }
 export function getEffectiveSavePath() { return get(effectiveSavePath) }
 export function getPauseForPrivate() { return get(pauseForPrivate) }
+export function getConcatOnResume() { return get(concatOnResume) }
 export function getUserAgent() { return get(useragent) }
 export function getRecQuality() { return get(recQuality) }
 export function getExtBranch() { return get(extBranch) }
@@ -212,6 +214,7 @@ export function setProxyList(v) { proxyList.set(v); saveConfig() }
 export function clearProxyList() { proxyList.set(''); saveConfig() }
 export function setRecFormat(v) { recFormat.set(v); saveConfig() }
 export function setPauseForPrivate(v) { pauseForPrivate.set(v); saveConfig() }
+export function setConcatOnResume(v) { concatOnResume.set(v); saveConfig() }
 export function setUserAgent(v) { useragent.set(v); saveConfig() }
 export function setRecQuality(v) { recQuality.set(v); saveConfig() }
 export function setExtBranch(v) { extBranch.set(v); saveConfig() }
@@ -253,6 +256,7 @@ export function saveConfig() {
       { name: 'proxylist', value: get(proxyList) },
       { name: 'recformat', value: get(recFormat) },
       { name: 'pauseforprivate', value: get(pauseForPrivate) },
+      { name: 'concatonresume', value: get(concatOnResume) },
       { name: 'useragent', value: get(useragent) },
       { name: 'recquality', value: get(recQuality) },
       { name: 'extbranch', value: get(extBranch) },
@@ -559,6 +563,7 @@ export function init() {
       proxyList.set(args.proxylist || '')
       recFormat.set(args.recformat || 'mkv')
       pauseForPrivate.set(args.pauseforprivate ?? true)
+      concatOnResume.set(args.concatonresume ?? true)
       useragent.set(args.useragent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0')
       recQuality.set(args.recquality || 'best')
       extBranch.set(args.extbranch || 'main')

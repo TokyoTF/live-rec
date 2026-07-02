@@ -139,7 +139,7 @@
       />
     {:else}
       <div class="w-full h-full flex items-center justify-center">
-        <span class="text-[10px] font-bold tracking-wider text-white/20 select-none uppercase">Offline</span>
+        <span class="text-[10px] font-bold tracking-wider text-white/20 select-none uppercase">{status || 'Offline'}</span>
       </div>
     {/if}
     <div class="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>

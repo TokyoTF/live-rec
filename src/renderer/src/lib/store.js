@@ -730,7 +730,11 @@ export function init() {
               send('rec:recovery', { name: args.nametag, provider: args.provider })
             }
           } else if ((prevStatus === 'private' || prevStatus === 'offline')) {
-            if (!draft[idx]._recoveryPending && (now - lastAttempt > cooldownMs)) {
+            const wasPrivate = prevStatus === 'private'
+            const pfp = get(pauseForPrivate)
+            if (wasPrivate && !pfp) {
+              // pause disabled: recording was already stopped, skip recovery
+            } else if (!draft[idx]._recoveryPending && (now - lastAttempt > cooldownMs)) {
               draft[idx]._recoveryPending = true
               draft[idx]._recoveryLastAttempt = now
               send('rec:recovery', { name: args.nametag, provider: args.provider })

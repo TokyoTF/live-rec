@@ -149,7 +149,7 @@
       </span>
     </div>
     <div class="flex gap-2 items-center ml-auto">
-    {#if currentRec?.statusRec}
+    {#if currentRec?.statusRec === true}
       <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full border border-recording/30">
         <span class="w-1 h-1 rounded-full bg-recording"></span>
         <span class="text-[9px] font-bold text-white tracking-wider">REC</span>

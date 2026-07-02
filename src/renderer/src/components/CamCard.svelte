@@ -77,9 +77,11 @@
   }
 
   function handleRecToggle() {
-    if (!statusRec && !paused) {
+    if (statusRec !== true && statusRec !== 'waiting' && !paused) {
       const recUrl = localRecUrl || resolutions?.[0]?.url || ''
-      startRec(nametag, provider, recUrl, resolutions, localRecUrl)
+      const match = resolutions?.find(r => r.url === localRecUrl)
+      const resHeight = match?.resolution?.height || null
+      startRec(nametag, provider, recUrl, resolutions, resHeight)
     } else {
       stopRec(nametag, provider, resolutions)
     }
@@ -126,11 +128,17 @@
 
   <!-- Thumbnail -->
   <div class="relative overflow-hidden bg-surface-900 shrink-0 {$viewMode === 'grid' ? 'aspect-video w-full rounded-t-xl' : 'w-24 h-14 rounded-lg' }">
-    <img
-      src={thumb || 'https://www.camsoda.com/assets/img/missing-img.jpg'}
-      alt={nametag}
-      class="w-full h-full object-cover transition-transform rounded-t-xl duration-500 group-hover:scale-105"
-    />
+    {#if thumb}
+      <img
+        src={thumb}
+        alt={nametag}
+        class="w-full h-full object-cover transition-transform rounded-t-xl duration-500 group-hover:scale-105"
+      />
+    {:else}
+      <div class="w-full h-full flex items-center justify-center">
+        <span class="text-[10px] font-bold tracking-wider text-white/20 select-none uppercase">Offline</span>
+      </div>
+    {/if}
     <div class="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
 
     <!-- Status badge -->
@@ -204,7 +212,7 @@
         </div>
         {/if}
 
-      {#if $viewMode === 'list' && statusRec}
+      {#if $viewMode === 'list' && (statusRec === true || statusRec === 'waiting')}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 ml-2">
           {#if $showStats}
             <div role="figure" class="relative inline-flex" onmouseenter={checkStatsPosition} onmouseleave={hideStats}>
@@ -233,26 +241,31 @@
               {/if}
             </div>
           {/if}
-          <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording'}"></span>
-          {timeRec || '0 s'}{paused ? ' - paused' : ''}
+          {#if statusRec === 'waiting'}
+            <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+            <span class="text-[11px] text-yellow-500">Waiting...</span>
+          {:else}
+            <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording'}"></span>
+            {timeRec || '0 s'}{paused ? ' - paused' : ''}
+          {/if}
         </div>
       {/if}
     </div>
 
     <!-- Recording controls -->
-    {#if status === 'online' && !resolutions?.length && !recoveryPending && !statusRec}
+    {#if status === 'online' && !resolutions?.length && !recoveryPending && statusRec !== true && statusRec !== 'waiting'}
       <div class="flex items-center gap-2 {$viewMode === 'grid' ? 'pt-1' : ''}">
         <div class="flex items-center gap-1.5 text-[11px] text-white/40">
           <div class="w-3 h-3 border-2 border-white/20 border-t-white/60 rounded-full animate-spin"></div>
           <span>Loading stream...</span>
         </div>
       </div>
-    {:else if (status === 'online' && resolutions?.length > 0 && !recoveryPending) || statusRec}
+    {:else if (status === 'online' && resolutions?.length > 0 && !recoveryPending) || statusRec === true || statusRec === 'waiting'}
       <div class="flex items-center gap-2 {$viewMode === 'grid' ? 'pt-1' : ''}">
         {#if $viewMode === 'grid' && resolutions?.length > 0}
           <select
             bind:value={localRecUrl}
-            disabled={statusRec}
+            disabled={statusRec === true || statusRec === 'waiting'}
             class="flex-1 min-w-0 px-3 py-1.5 disabled:opacity-70 disabled:hover:bg-surface-600 rounded-full bg-surface-600 border border-surface-500 text-[11px] font-medium text-white/90 outline-none focus:border-accent-500 transition-all cursor-pointer hover:bg-surface-500"
           >
             {#each resolutions as res}
@@ -264,16 +277,22 @@
         {/if}
 
         <button
-          class="px-4 py-1.5 text-[11px] font-bold rounded-full transition-all cursor-pointer {(!statusRec && !paused)
+          class="px-4 py-1.5 text-[11px] font-bold rounded-full transition-all cursor-pointer {(statusRec !== true && statusRec !== 'waiting' && !paused)
             ? 'bg-white hover:bg-gray-200 text-black'
             : (paused ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'bg-recording hover:bg-recording/60 text-white')}"
           onclick={handleRecToggle}
         >
-          {(!statusRec && !paused) ? 'REC' : 'STOP'}
+          {#if statusRec === 'waiting'}
+            WAITING
+          {:else if statusRec === true || paused}
+            STOP
+          {:else}
+            REC
+          {/if}
         </button>
       </div>
 
-      {#if (statusRec || paused) && $viewMode === 'grid'}
+      {#if (statusRec === true || statusRec === 'waiting' || paused) && $viewMode === 'grid'}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 mt-1">
           {#if $showStats}
             <div role="figure" class="relative inline-flex" onmouseenter={checkStatsPosition} onmouseleave={hideStats}>
@@ -302,8 +321,13 @@
               {/if}
             </div>
           {/if}
-          <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording pulse-recording'}"></span>
-          {timeRec || '0 s'}{paused ? ' - paused' : ''}
+          {#if statusRec === 'waiting'}
+            <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+            <span class="text-yellow-500">Waiting...</span>
+          {:else}
+            <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording pulse-recording'}"></span>
+            {timeRec || '0 s'}{paused ? ' - paused' : ''}
+          {/if}
         </div>
       {/if}
     {/if}

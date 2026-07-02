@@ -110,7 +110,8 @@ export default class StripchatExtension {
 
     const resolutions = extracted.resolutions
     if (selresolution) {
-      const match = resolutions.find(r => r.resolution === selresolution)
+      const height = parseInt(selresolution) || 0
+      const match = resolutions.find(r => r.resolution?.height === height)
       if (match) return match.url
     }
     return resolutions[0].url

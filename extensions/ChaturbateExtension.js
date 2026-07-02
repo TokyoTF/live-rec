@@ -52,7 +52,7 @@ export default class ChaturbateExtension {
   getThumb(nametag, status) {
     return status == this.status_types.ONLINE || status == this.status_types.PRIVATE
       ? `https://thumb.live.mmcdn.com/riw/${nametag}.jpg`
-      : 'https://web.static.mmcdn.com/images/logo.svg?hash=e41cf1a9ae04'
+      : ''
   }
 
   async #fetchPlaylist(url) {
@@ -144,7 +144,8 @@ export default class ChaturbateExtension {
             if (fresh && fresh.success && fresh.url) return fresh.url
           } catch {}
           return null
-        }
+        },
+        selectedResolution
       )
 
       await cbProxy.start()

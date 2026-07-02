@@ -61,7 +61,7 @@
   let filteredRecordings = $derived.by(() => {
     let recs = $recordings
     if (filter === 'online') recs = recs.filter((r) => r.status === 'online')
-    else if (filter === 'recording') recs = recs.filter((r) => r.statusRec)
+    else if (filter === 'recording') recs = recs.filter((r) => r.statusRec === true)
     else if (filter === 'offline') recs = recs.filter((r) => r.status === 'offline' || r.status === 'private')
     else if (filter === 'private') recs = recs.filter((r) => r.status === 'private')
 

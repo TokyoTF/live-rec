@@ -537,8 +537,10 @@ app.whenReady().then(async () => {
           const freshUrl = await instance.getStreamUrl(args.nametag, args.selresolution)
           if (freshUrl) url = freshUrl
           } else {
-            const fresh = await instance.extract(args.nametag)
-            url = fresh.url
+            if (!url) {
+              const fresh = await instance.extract(args.nametag)
+              url = fresh.url
+            }
           }
         }
         if (args.provider === 'camsoda' && url) {

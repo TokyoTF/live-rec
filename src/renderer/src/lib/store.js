@@ -271,7 +271,7 @@ export function getCurrentStream() { return get(currentStream) }
 
 // Derived counts
 export const onlineCount = derived(recordings, $r => $r.filter(r => r.status === 'online').length)
-export const recordingCount = derived(recordings, $r => $r.filter(r => r.statusRec).length)
+export const recordingCount = derived(recordings, $r => $r.filter(r => r.statusRec === true).length)
 export const offlineCount = derived(recordings, $r => $r.filter(r => r.status === 'offline').length)
 export const privateCount = derived(recordings, $r => $r.filter(r => r.status === 'private').length)
 export const totalCount = derived(recordings, $r => $r.length)
@@ -283,7 +283,7 @@ export const sessionRecordedToday = derived(recordingHistory, $h => {
 })
 export const sessionActiveTime = derived(recordings, $r => {
   return $r.reduce((total, r) => {
-    if (!r.statusRec) return total
+    if (r.statusRec !== true) return total
     return total + (r.timeRec || 0)
   }, 0)
 })
@@ -383,7 +383,7 @@ export function startRec(nametag, provider, url, resolution,selresolution) {
     const idx = r.findIndex(i => i.nametag === nametag && i.provider === provider)
     if (idx !== -1) {
       const draft = [...r]
-      draft[idx] = { ...draft[idx], statusRec: true, paused: false, timeRec: 0, timeFormat: '0 s' }
+      draft[idx] = { ...draft[idx], statusRec: 'waiting', paused: false, timeRec: 0, timeFormat: '0 s' }
       return draft
     }
     return r
@@ -794,7 +794,7 @@ export function init() {
         const draft = [...r]
         let totalSize = 0
         draft.forEach((n, idx) => {
-          if (n.statusRec && !n.paused) {
+          if (n.statusRec === true && !n.paused) {
             const newTime = (n.timeRec || 0) + 1000
             draft[idx] = {
               ...draft[idx],
@@ -807,7 +807,7 @@ export function init() {
               stopRec(n.nametag, n.provider, n.resolutions)
             }
           }
-          if (n.statusRec) {
+          if (n.statusRec === true) {
             totalSize += n.fileSize || 0
           }
         })

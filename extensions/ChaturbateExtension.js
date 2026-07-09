@@ -9,7 +9,7 @@ export default class ChaturbateExtension {
       referer: true,
       get_url_new: true,
       patterns: ['https://*.chaturbate.com/*', 'https://*.mmcdn.com/*'],
-      version: '2.1.0'
+      version: '2.1.1'
     }
     this.extension = new ExtensionExtra(this.config)
     this.status_types = this.extension.status_types
@@ -64,7 +64,7 @@ export default class ChaturbateExtension {
       })
       if (!res.ok) return []
       const data = await res.text()
-      const { Parser } = await import('m3u8-parser')
+      const Parser = globalThis.m3u8Parser
       const parser = new Parser()
       parser.push(data)
       parser.end()

@@ -854,7 +854,6 @@ export function init() {
       if (!get(isLoaded)) return
       recordings.update(r => {
         const draft = [...r]
-        let totalSize = 0
         draft.forEach((n, idx) => {
           if (n.statusRec === true && !n.paused) {
             const newTime = (n.timeRec || 0) + 1000
@@ -869,11 +868,7 @@ export function init() {
               stopRec(n.nametag, n.provider, n.resolutions)
             }
           }
-          if (n.statusRec === true) {
-            totalSize += n.fileSize || 0
-          }
         })
-        totalRecordingSize.set(totalSize)
         return draft
       })
     }, 1000)

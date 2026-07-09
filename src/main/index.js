@@ -12,6 +12,8 @@ import {
   net
 } from 'electron'
 import { fetch } from 'undici'
+import { Parser as M3U8Parser } from 'm3u8-parser'
+globalThis.m3u8Parser = M3U8Parser
 import electronUpdater from 'electron-updater'
 import { join, resolve, dirname } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'

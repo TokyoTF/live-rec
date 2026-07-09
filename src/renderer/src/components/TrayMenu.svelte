@@ -1,7 +1,7 @@
 <script>
   import { onMount, onDestroy } from 'svelte'
-  import { Monitor, Radio, Layout, ExternalLink, Power } from 'lucide-svelte'
-
+  import { Monitor, Radio, PanelsTopLeft, ExternalLink, Power } from 'lucide-svelte'
+  import { on, send } from '@lib/ipc.js'
   let online = $state(0)
   let recording = $state(0)
   let total = $state(0)
@@ -9,19 +9,19 @@
   let pollTimer
 
   function showApp() {
-    window.electron.ipcRenderer.send('tray:show-app')
+     send('tray:show-app')
   }
 
   function quitApp() {
-    window.electron.ipcRenderer.send('tray:quit-app')
+   send('tray:quit-app')
   }
 
   function requestStats() {
-    window.electron.ipcRenderer.send('tray:get-stats')
+    send('tray:get-stats')
   }
 
   onMount(() => {
-    unsub = window.electron.ipcRenderer.on('tray:stats-reply', (_event, data) => {
+    unsub = on('tray:stats-reply', (_event, data) => {
       online = data.online
       recording = data.recording
       total = data.total
@@ -72,7 +72,7 @@
       class="flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 border border-white/5"
     >
       <div class="flex items-center gap-2.5">
-        <Layout size={14} class="text-purple-400" />
+        <PanelsTopLeft size={14} class="text-purple-400" />
         <span class="text-xs font-medium text-white/70">Total Cams</span>
       </div>
       <span class="text-xs font-bold text-purple-400">{total}</span>

@@ -1,6 +1,8 @@
 <script>
-  import { PlayIcon, XIcon } from 'lucide-svelte'
-  import { PROVIDER_COLORS, selectStream, removeRecording, startRec, stopRec, viewMode } from '@lib/store.js'
+  import { PlayIcon, XIcon, Heart, Activity, Tag } from 'lucide-svelte'
+  import { PROVIDER_COLORS, selectStream, removeRecording, startRec, stopRec, viewMode, autoRec, autoRecMode, reclist, showStats, showTags, updateTags } from '@lib/store.js'
+  import { send } from '@lib/ipc.js'
+  import { onMount, onDestroy, tick } from 'svelte'
 
   let {
     status,
@@ -10,19 +12,79 @@
     statusRec,
     paused,
     resolutions,
-    timeRec
+    timeRec,
+    recoveryPending,
+    codec,
+    stats,
+    tags = [],
+    outputPath,
+    recUrl,
+    recResolution,
+    recProvider,
+    retryCount = null,
+    retryMax = null,
+    concat = false
   } = $props()
 
   let localRecUrl = $state('')
+  let tagInput = $state('')
+  let showTagInput = $state(false)
+  let tagWrapper = $state(null)
+
+  $effect(() => {
+    if (resolutions?.length > 0) {
+      if (!localRecUrl || !resolutions.some(r => r.url === localRecUrl)) {
+        localRecUrl = resolutions[0].url
+      }
+    }
+  })
+
+  let isFavorite = $derived($reclist.some(r => r.nametag === nametag && r.provider === provider && r.favorite === true))
+  let selectedResLabel = $derived(() => {
+    const res = resolutions?.find(r => r.url === localRecUrl)
+    return res ? `${res.resolution.width}x${res.resolution.height}` : ''
+  })
+  let statsPos = $state({ show: false, above: true, x: 0, y: 0 })
+  let statsTipEl = $state(null)
+
+  function checkStatsPosition(e) {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const above = rect.top > 120
+    const y = above ? rect.top - 6 : rect.bottom + 6
+    statsPos = { show: true, above, x: rect.left + rect.width / 2, y }
+    tick().then(() => {
+      if (!statsTipEl) return
+      const tipW = statsTipEl.offsetWidth
+      const tipH = statsTipEl.offsetHeight
+      const clampedX = Math.min(Math.max(rect.left + rect.width / 2, tipW / 2 + 8), window.innerWidth - tipW / 2 - 8)
+      let clampedY = y
+      if (y + tipH > window.innerHeight - 8) {
+        clampedY = rect.top - tipH - 6
+      }
+      if (clampedX !== statsPos.x || clampedY !== statsPos.y) statsPos = { ...statsPos, x: clampedX, y: clampedY }
+    })
+  }
+
+  function hideStats() {
+    statsPos = { ...statsPos, show: false }
+  }
+
+  function handleTagOutside(e) {
+    if (showTagInput && tagWrapper && !tagWrapper.contains(e.target)) {
+      showTagInput = false
+    }
+  }
 
   function handlePlayClick() {
     selectStream(provider, nametag, localRecUrl)
   }
 
   function handleRecToggle() {
-    if (!statusRec && !paused) {
-      const url = localRecUrl || resolutions?.[0]?.url || ''
-      startRec(nametag, provider, url)
+    if (statusRec !== true && statusRec !== 'waiting' && !paused) {
+      const recUrl = localRecUrl || resolutions?.[0]?.url || ''
+      const match = resolutions?.find(r => r.url === localRecUrl)
+      const resHeight = match?.resolution?.height || null
+      startRec(nametag, provider, recUrl, resolutions, resHeight)
     } else {
       stopRec(nametag, provider, resolutions)
     }
@@ -31,17 +93,55 @@
   function handleRemove() {
     removeRecording(nametag, provider)
   }
+
+  function toggleFavorite() {
+    let favorite = !isFavorite
+    let index = $reclist.findIndex(i => i.nametag === nametag && i.provider === provider)
+
+    if (index !== -1) {
+      reclist.update(r => {
+        const draft = [...r]
+        draft[index] = { ...draft[index], favorite }
+        return draft
+      })
+      send('Modify:config', { name: 'reclistupdate', value: $reclist[index] })
+    }
+  }
+
+  function addTag(e) {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      const newTag = tagInput.trim().toLowerCase()
+      if (!tags.includes(newTag)) {
+        const newTags = [...tags, newTag]
+        updateTags(nametag, provider, newTags)
+      }
+      tagInput = ''
+    }
+  }
+
+  function removeTag(tag) {
+    updateTags(nametag, provider, tags.filter(t => t !== tag))
+  }
+
+  onMount(() => { window.addEventListener('mousedown', handleTagOutside) })
+  onDestroy(() => { window.removeEventListener('mousedown', handleTagOutside) })
 </script>
 
-<div class="group relative bg-surface-800 border border-surface-600 overflow-hidden transition-all duration-300 {$viewMode === 'grid' ? 'rounded-xl' : 'flex items-center p-2 gap-3 rounded-xl'}">
+<div class="group relative bg-surface-800 border border-surface-600 transition-all duration-300 {$viewMode === 'grid' ? 'rounded-xl' : 'flex items-center p-2 gap-3 rounded-xl'}">
 
   <!-- Thumbnail -->
-  <div class="relative overflow-hidden bg-surface-900 shrink-0 {$viewMode === 'grid' ? 'aspect-video w-full' : 'w-24 h-14 rounded-lg' }">
-    <img
-      src={thumb || 'https://www.camsoda.com/assets/img/missing-img.jpg'}
-      alt={nametag}
-      class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-    />
+  <div class="relative overflow-hidden bg-surface-900 shrink-0 {$viewMode === 'grid' ? 'aspect-video w-full rounded-t-xl' : 'w-24 h-14 rounded-lg' }">
+    {#if thumb}
+      <img
+        src={thumb}
+        alt={nametag}
+        class="w-full h-full object-cover transition-transform rounded-t-xl duration-500 group-hover:scale-105"
+      />
+    {:else}
+      <div class="w-full h-full flex items-center justify-center">
+        <span class="text-[10px] font-bold tracking-wider text-white/20 select-none uppercase">{status || 'Offline'}</span>
+      </div>
+    {/if}
     <div class="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent"></div>
 
     <!-- Status badge -->
@@ -72,33 +172,108 @@
   <!-- Info -->
   <div class="flex-1 {$viewMode === 'grid' ? 'px-3 py-3 space-y-2' : 'flex items-center justify-between gap-4'}">
     <div class="flex items-center gap-2 min-w-0">
-      <span 
+      <span
         class="text-[10px] font-semibold px-2 py-0.5 rounded-md shrink-0"
         style="background-color: {$PROVIDER_COLORS[provider]}33; color: {$PROVIDER_COLORS[provider]};"
       >
         {provider}
       </span>
       <span class="text-sm font-medium text-white/90 truncate">{nametag}</span>
-      
-      {#if $viewMode === 'list' && statusRec}
+
+        <button
+          class="p-1 rounded-full hover:bg-surface-600 transition-all cursor-pointer"
+          onclick={toggleFavorite}
+        >
+          <Heart
+            size={14}
+            class={isFavorite ? 'fill-rose-500 text-rose-500' : 'text-white/40 hover:text-white/70'}
+          />
+        </button>
+
+        {#if $showTags}
+        <div class="relative" bind:this={tagWrapper}>
+          <button
+            class="p-1 rounded-full hover:bg-surface-600 transition-all cursor-pointer"
+            onclick={() => showTagInput = !showTagInput}
+          >
+            <Tag size={14} class={tags.length > 0 ? 'text-accent-400' : 'text-white/40 hover:text-white/70'} />
+          </button>
+          {#if showTagInput}
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <!-- svelte-ignore a11y_click_events_have_key_events -->
+            <div class="absolute top-full right-0 mt-1 p-2 bg-surface-900 border border-white/10 rounded-lg shadow-xl z-50 min-w-36" onclick={(e) => e.stopPropagation()}>
+              <input
+                type="text"
+                value={tagInput}
+                oninput={(e) => tagInput = e.target.value}
+                onkeydown={addTag}
+                placeholder="Add tag..."
+                class="w-full px-2 py-1 bg-surface-700 border border-white/10 rounded-md text-[11px] text-white/80 placeholder-white/25 outline-none focus:border-accent-500/50"
+              />
+            </div>
+          {/if}
+        </div>
+        {/if}
+
+      {#if $viewMode === 'list' && (statusRec === true || statusRec === 'waiting')}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 ml-2">
-          <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording'}"></span>
-          {timeRec || '0 s'}{paused ? ' - paused' : ''}
+          {#if $showStats}
+            <div role="figure" class="relative inline-flex" onmouseenter={checkStatsPosition} onmouseleave={hideStats}>
+              <div class="p-0.5 rounded-md hover:bg-surface-600 text-white/40 hover:text-white/70 transition-colors cursor-default">
+                <Activity size={12} />
+              </div>
+              {#if statsPos.show}
+                <div bind:this={statsTipEl} class="fixed px-2.5 py-1.5 rounded-lg bg-surface-900 border border-white/10 shadow-xl shadow-black/50 text-[9px] font-mono text-white/80 space-y-0.5 z-50 whitespace-nowrap pointer-events-none" style="left:{statsPos.x}px;top:{statsPos.y}px;transform:translateX(-50%)">
+                {#if codec}
+                  <div><span class="text-white/40">Codec:</span> {codec.video}</div>
+                {/if}
+                {#if stats}
+                  <div><span class="text-white/40">Bitrate:</span> {stats.currentKbps} kbps</div>
+                  <div><span class="text-white/40">FPS:</span> {stats.currentFps}</div>
+                {/if}
+                {#if selectedResLabel()}
+                  <div><span class="text-white/40">Resolución:</span> {selectedResLabel()}</div>
+                {/if}
+                {#if recProvider}
+                  <div><span class="text-white/40">Provider:</span> {recProvider}</div>
+                {/if}
+                {#if outputPath}
+                  <div class="mt-1 pt-1 border-t border-white/10"><span class="text-white/40">Path:</span> <span class="text-[10px] break-all">{outputPath}</span></div>
+                {/if}
+              </div>
+              {/if}
+            </div>
+          {/if}
+          {#if concat}
+            <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+            <span class="text-[11px] text-purple-400">Concatenating {concat} files...</span>
+          {:else if statusRec === 'waiting'}
+            <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+            <span class="text-[11px] text-yellow-500">{#if retryCount != null && retryMax != null}Reconnecting {retryCount}/{retryMax}{:else}Waiting...{/if}</span>
+          {:else}
+            <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording'}"></span>
+            {timeRec || '0 s'}{paused ? ' - paused' : ''}
+          {/if}
         </div>
       {/if}
     </div>
 
     <!-- Recording controls -->
-    {#if (status === 'online' && resolutions?.length > 0) || statusRec}
+    {#if status === 'online' && !resolutions?.length && !recoveryPending && statusRec !== true && statusRec !== 'waiting'}
+      <div class="flex items-center gap-2 {$viewMode === 'grid' ? 'pt-1' : ''}">
+        <div class="flex items-center gap-1.5 text-[11px] text-white/40">
+          <div class="w-3 h-3 border-2 border-white/20 border-t-white/60 rounded-full animate-spin"></div>
+          <span>Loading stream...</span>
+        </div>
+      </div>
+    {:else if (status === 'online' && resolutions?.length > 0 && !recoveryPending) || statusRec === true || statusRec === 'waiting'}
       <div class="flex items-center gap-2 {$viewMode === 'grid' ? 'pt-1' : ''}">
         {#if $viewMode === 'grid' && resolutions?.length > 0}
           <select
             bind:value={localRecUrl}
-            class="flex-1 min-w-0 px-3 py-1.5 rounded-full bg-surface-600 border border-surface-500 text-[11px] font-medium text-white/90 outline-none focus:border-accent-500 transition-all cursor-pointer hover:bg-surface-500"
+            disabled={statusRec === true || statusRec === 'waiting'}
+            class="flex-1 min-w-0 px-3 py-1.5 disabled:opacity-70 disabled:hover:bg-surface-600 rounded-full bg-surface-600 border border-surface-500 text-[11px] font-medium text-white/90 outline-none focus:border-accent-500 transition-all cursor-pointer hover:bg-surface-500"
           >
-            <option value="" disabled selected>
-              {resolutions[0]?.resolution.width}x{resolutions[0]?.resolution.height} {#if resolutions[0]?.fps}{resolutions[0]?.fps}fps{/if}
-            </option>
             {#each resolutions as res}
               <option value={res.url}>
                 {res.resolution.width}x{res.resolution.height} {#if res.fps}{res.fps}fps{/if}
@@ -108,21 +283,74 @@
         {/if}
 
         <button
-          class="px-4 py-1.5 text-[11px] font-bold rounded-full transition-all cursor-pointer {(!statusRec && !paused)
+          class="px-4 py-1.5 text-[11px] font-bold rounded-full transition-all cursor-pointer {(statusRec !== true && statusRec !== 'waiting' && !paused)
             ? 'bg-white hover:bg-gray-200 text-black'
             : (paused ? 'bg-orange-600 hover:bg-orange-700 text-white' : 'bg-recording hover:bg-recording/60 text-white')}"
           onclick={handleRecToggle}
         >
-          {(!statusRec && !paused) ? 'REC' : 'STOP'}
+          {#if statusRec === 'waiting'}
+            WAITING
+          {:else if statusRec === true || paused}
+            STOP
+          {:else}
+            REC
+          {/if}
         </button>
       </div>
 
-      {#if (statusRec || paused) && $viewMode === 'grid'}
+      {#if (statusRec === true || statusRec === 'waiting' || paused) && $viewMode === 'grid'}
         <div class="flex items-center gap-1.5 text-[11px] font-bold text-accent-500 mt-1">
-          <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-accent-500 pulse-recording'}"></span>
-          {timeRec || '0 s'}{paused ? ' - paused' : ''}
+          {#if $showStats}
+            <div role="figure" class="relative inline-flex" onmouseenter={checkStatsPosition} onmouseleave={hideStats}>
+              <div class="p-0.5 rounded-md hover:bg-surface-600 text-white/40 hover:text-white/70 transition-colors cursor-default">
+                <Activity size={12} />
+              </div>
+              {#if statsPos.show}
+                <div bind:this={statsTipEl} class="fixed px-2.5 py-1.5 rounded-lg bg-surface-900 border border-white/10 shadow-xl shadow-black/50 text-[9px] font-mono text-white/80 space-y-0.5 z-50 whitespace-nowrap pointer-events-none" style="left:{statsPos.x}px;top:{statsPos.y}px;transform:translateX(-50%)">
+                {#if codec}
+                  <div><span class="text-white/40">Codec:</span> {codec.video}</div>
+                {/if}
+                {#if stats}
+                  <div><span class="text-white/40">Bitrate:</span> {stats.currentKbps} kbps</div>
+                  <div><span class="text-white/40">FPS:</span> {stats.currentFps}</div>
+                {/if}
+                {#if selectedResLabel()}
+                  <div><span class="text-white/40">Resolución:</span> {selectedResLabel()}</div>
+                {/if}
+                {#if recProvider}
+                  <div><span class="text-white/40">Provider:</span> {recProvider}</div>
+                {/if}
+                {#if outputPath}
+                  <div class="mt-1 pt-1 border-t border-white/10"><span class="text-white/40">Path:</span> <span class="text-[10px] break-all">{outputPath}</span></div>
+                {/if}
+              </div>
+              {/if}
+            </div>
+          {/if}
+          {#if concat}
+            <span class="w-2 h-2 rounded-full bg-purple-500 animate-pulse"></span>
+            <span class="text-purple-400">Concatenating {concat} files...</span>
+          {:else if statusRec === 'waiting'}
+            <span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+            <span class="text-yellow-500">{#if retryCount != null && retryMax != null}Reconnecting {retryCount}/{retryMax}{:else}Waiting...{/if}</span>
+          {:else}
+            <span class="w-2 h-2 rounded-full {paused ? 'bg-orange-500 animate-pulse' : 'bg-recording pulse-recording'}"></span>
+            {timeRec || '0 s'}{paused ? ' - paused' : ''}
+          {/if}
         </div>
       {/if}
+    {/if}
+
+    <!-- Tags Section -->
+    {#if $showTags && tags.length > 0}
+      <div class="flex flex-wrap gap-1 {$viewMode === 'grid' ? 'px-3 pb-2' : 'ml-2 mt-1'}">
+        {#each tags as tag}
+          <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-surface-700/80 border border-white/5 rounded-md text-[9px] text-white/50">
+            #{tag}
+            <button onclick={() => removeTag(tag)} class="hover:text-red-400 cursor-pointer"><XIcon size={8} /></button>
+          </span>
+        {/each}
+      </div>
     {/if}
 
     <!-- Remove button (List view only, always visible) -->

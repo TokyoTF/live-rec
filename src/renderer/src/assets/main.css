@@ -1,5 +1,12 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@font-face {
+  font-family: 'Inter';
+  src: url('./inter.ttf') format('truetype');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 @theme {
   --color-surface-900: #1e1e1e;
@@ -19,9 +26,9 @@
   --color-online: #2ba640;
   --color-private: #f2a900;
   --color-offline: #aaaaaa;
-  --color-notexist: #ff0000;
+  --color-notexist: #df4e4e;
   --color-recording: #e74040;
-  --font-sans: 'Roboto', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 
@@ -60,7 +67,7 @@ html, body {
 
 /* ── Scrollbar ── */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;

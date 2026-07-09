@@ -15,6 +15,9 @@ const electronAdapter = isElectron ? {
   send(channel, data) {
     window.electron.ipcRenderer.send(channel, data)
   },
+  invoke(channel, data) {
+    return window.electron.ipcRenderer.invoke(channel, data)
+  },
   on(channel, callback) {
     window.electron.ipcRenderer.on(channel, callback)
     return () => window.electron.ipcRenderer.removeListener(channel, callback)
@@ -92,10 +95,17 @@ const wsAdapter = {
 }
 
 // ── Exported API — picks the right adapter ──
-const adapter = electronAdapter || wsAdapter
+const adapter = electronAdapter
 
 export function send(channel, data) {
   adapter.send(channel, data)
+}
+
+export function invoke(channel, data) {
+  if (adapter.invoke) {
+    return adapter.invoke(channel, data)
+  }
+  return Promise.reject(new Error('invoke not supported'))
 }
 
 export function on(channel, callback) {
@@ -104,4 +114,13 @@ export function on(channel, callback) {
 
 export function once(channel, callback) {
   adapter.once(channel, callback)
+}
+
+export function cleanupAll() {
+  wsListeners.clear()
+  if (ws) {
+    ws.close()
+    ws = null
+  }
+  wsReady = false
 }

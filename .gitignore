@@ -10,3 +10,5 @@ bun.lock
 dev-app-update.yml
 app-update.yml
 package-lock.json
+.agents/*
+skills-lock.json

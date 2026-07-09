@@ -6,9 +6,10 @@
   import Settings from '@pages/Settings.svelte'
   import TrayMenu from '@components/TrayMenu.svelte'
   import Toast from '@components/Toast.svelte'
-  import { 
-    init, destroy, 
-    getOnlineCount, getRecordingCount, getTotalCount 
+  import {
+    init,
+    getOnlineCount, getRecordingCount, getTotalCount,
+    playerHidden
   } from '@lib/store.js'
   import { on, send } from '@lib/ipc.js'
 
@@ -34,7 +35,6 @@
 
   onDestroy(() => {
     if (!isTray) {
-      destroy()
       if (unsubStats) unsubStats()
     }
   })
@@ -56,7 +56,16 @@
       </div>
 
       <!-- Mini Player (always visible) -->
-      <Player />
+      {#if !$playerHidden}
+        <Player />
+      {:else}
+        <button
+          onclick={() => playerHidden.set(false)}
+          class="fixed bottom-4 right-4 z-100 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-surface-700 hover:bg-surface-600 border border-white/10 text-xs text-white/60 hover:text-white/90 transition-colors cursor-pointer"
+        >
+          Show Player
+        </button>
+      {/if}
     </div>
   </main>
 {/if}

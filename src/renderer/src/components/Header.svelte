@@ -23,7 +23,7 @@
 
   <div class="no-drag flex items-center gap-2">
     <button
-      class="p-2 bg-surface-700 hover:bg-surface-600 text-white transition-all cursor-pointer rounded-full"
+      class="p-2 bg-surface-600 hover:bg-surface-600/50 text-[#e3e3e3] transition-all cursor-pointer rounded-full"
       use:tooltip={"Settings"}
       onclick={toggleSettings}
     >
@@ -33,7 +33,7 @@
     <ExtensionsModal bind:showModal={extensionsModalOpen} closeModal={() => (extensionsModalOpen = false)} />
 
     <button
-      class="p-2 bg-surface-700 hover:bg-surface-600 text-white transition-all cursor-pointer rounded-full"
+      class="p-2 bg-surface-600 hover:bg-surface-600/50 text-[#e3e3e3] transition-all cursor-pointer rounded-full"
       use:tooltip={"Reload App"}
       onclick={reload}
     >
@@ -41,7 +41,7 @@
     </button>
 
     <button
-      class="p-2 bg-surface-700 hover:bg-surface-600 text-white transition-all cursor-pointer rounded-full mr-2"
+      class="p-2 bg-surface-600 hover:bg-surface-600/50 text-[#e3e3e3] transition-all cursor-pointer rounded-full mr-2"
       use:tooltip={"About & Updates"}
       onclick={() => (updaterModalOpen = true)}
     >
@@ -63,11 +63,11 @@
       use:tooltip={"Maximize"}
       onclick={maximize}
     >
-      <Square size={14} />
+      <Square size={16} />
     </button>
 
     <button
-      class="p-2 hover:bg-red-600 text-white transition-all cursor-pointer rounded-full"
+      class="p-2 hover:bg-[#db3f3f] text-white transition-all cursor-pointer rounded-full"
       use:tooltip={"Close"}
       onclick={close}
     >

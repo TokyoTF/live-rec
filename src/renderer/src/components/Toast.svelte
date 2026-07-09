@@ -1,9 +1,12 @@
 <script>
-  import { getToasts, dismiss } from '@lib/store.js'
+  import { toasts, dismiss } from '@lib/store.js'
   import { XIcon, InfoIcon, CircleAlert, CircleCheck } from 'lucide-svelte'
   import { fly, fade } from 'svelte/transition'
+  import { onDestroy } from 'svelte'
 
-  let toasts = $derived(getToasts())
+  let toastsValue = $state([])
+  const unsubscribe = toasts.subscribe(v => { toastsValue = v })
+  onDestroy(unsubscribe)
 
   const icons = {
     info: InfoIcon,
@@ -20,21 +23,21 @@
   }
 </script>
 
-<div class="fixed top-4 right-4 z-9999 flex flex-col gap-2 no-drag pointer-events-none">
-  {#each toasts as toast (toast.id)}
-    {@const Icon = icons[toast.type] || InfoIcon}
+<div class="fixed z-999 left-4 bottom-6 flex flex-col gap-2 no-drag pointer-events-none">
+  {#each toastsValue as toastItem (toastItem.id)}
+    {@const Icon = icons[toastItem.type] || InfoIcon}
     <div
       in:fly={{ x: 50, duration: 300 }}
       out:fade={{ duration: 200 }}
-      class="flex items-center gap-3 px-4 py-3 rounded-lg border shadow-xl backdrop-blur-md min-w-[280px] pointer-events-auto {colors[toast.type] || colors.info}"
+      class="flex items-center gap-3 px-4 py-3 rounded-lg border shadow-xl backdrop-blur-md min-w-64 pointer-events-auto {colors[toastItem.type] || colors.info}"
     >
       <div class="flex items-center justify-center p-1 rounded-full bg-black/20">
         <Icon size={16} class="shrink-0" />
       </div>
-      <span class="flex-1 text-sm font-medium drop-shadow-sm">{toast.message}</span>
+      <span class="flex-1 text-sm font-medium drop-shadow-sm">{toastItem.message}</span>
       <button
         class="p-1 hover:bg-white/10 rounded-md transition-colors cursor-pointer"
-        onclick={() => dismiss(toast.id)}
+        onclick={() => dismiss(toastItem.id)}
         aria-label="Dismiss"
       >
         <XIcon size={14} />

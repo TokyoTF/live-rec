@@ -1,29 +1,33 @@
 <script>
   import {
     ffmpegPath, saveFolder, nasPath, dateFormat,
-    autoRec, autoCreateFolder, effectiveSavePath, showStats,
+    autoRec, autoRecMode, autoCreateFolder, effectiveSavePath, showStats, showTags,
     viewMode, notifications, groupBy,
-    selectFolder, selectFFmpeg, setDateFormat, setAutoRec,
-    setAutoCreateFolder, setNasPath, setShowStats,
+    selectFolder, selectFFmpeg, setDateFormat, setAutoRec, setAutoRecMode,
+    setAutoCreateFolder, setNasPath, setShowStats, setShowTags,
     setViewMode, setNotifications, setGroupBy,
-    pollInterval, setPollInterval, offlinePollInterval, setOfflinePollInterval, maxRecDuration, setMaxRecDuration,
+    pollInterval, setPollInterval, offlinePollInterval, setOfflinePollInterval, maxRecDuration, setMaxRecDuration, maxRecFileSize, setMaxRecFileSize,
     ffmpegParams, setFfmpegParams, minimizeToTray, setMinimizeToTray,
-    proxyList, selectProxyList,
+    proxyList, selectProxyList, clearProxyList,
+    maxproxytry, setMaxProxyTry,
     recFormat, setRecFormat, openSaveFolder,
     pauseForPrivate, setPauseForPrivate,
+    concatOnResume, setConcatOnResume,
     useragent, setUserAgent,
     recQuality, setRecQuality,
     extBranch, setExtBranch,
     orderByStatus, setOrderByStatus,
     isSettingsOpen, closeSettings,
+    openLogs,
     isDev, devmode, setDevMode, syncDevExtensions,
+    mkvmergePath, mkvmergeEnabled, setMkvmergeEnabled, selectMkvmerge,
     DATE_FORMATS, providers
   } from '@lib/store.js'
   import {
     FolderIcon, FileIcon, ServerIcon, SaveIcon,
     LayoutGrid, LayoutList, Bell, Layers, XIcon,
     CpuIcon, TimerIcon, Minimize2Icon, RefreshCcwIcon, GlobeIcon, UserIcon,
-    GitBranchIcon, CodeIcon
+    GitBranchIcon, CodeIcon, Heart, FileText, HardDrive as HardDriveIcon
   } from 'lucide-svelte'
 </script>
 
@@ -90,6 +94,38 @@
                 Select
               </button>
             </div>
+
+            <!-- MKVMerge Toggle -->
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5">
+              <FileIcon size={16} class="text-green-400 shrink-0" />
+              <div class="flex-1 min-w-0">
+                <p class="text-[11px] text-white/40 mb-0.5">Use MKVMerge for MKV concat</p>
+                <p class="text-[10px] text-white/30">Faster concat for MKV files (requires MKVToolNix)</p>
+              </div>
+              <button
+                class="px-3 py-1 rounded-full border text-xs font-medium transition-all cursor-pointer {$mkvmergeEnabled ? 'bg-green-500/20 border-green-500/40 text-green-400' : 'bg-surface-700 border-white/8 text-white/50'}"
+                onclick={() => setMkvmergeEnabled(!$mkvmergeEnabled)}
+              >
+                {$mkvmergeEnabled ? 'ON' : 'OFF'}
+              </button>
+            </div>
+
+            <!-- MKVMerge Path -->
+            {#if $mkvmergeEnabled}
+              <div class="flex items-center gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5">
+                <FileIcon size={16} class="text-green-400 shrink-0" />
+                <div class="flex-1 min-w-0">
+                  <p class="text-[11px] text-white/40 mb-0.5">MKVMerge Binary (optional)</p>
+                  <p class="text-xs text-white/70 truncate">{$mkvmergePath || 'Auto-detect (mkvmerge in PATH)'}</p>
+                </div>
+                <button
+                  class="px-4 py-1.5 rounded-full bg-surface-700 hover:bg-surface-600 border border-white/8 text-xs font-medium text-white/70 hover:text-white/90 transition-all cursor-pointer"
+                  onclick={selectMkvmerge}
+                >
+                  Select
+                </button>
+              </div>
+            {/if}
           </div>
         </section>
 
@@ -151,6 +187,7 @@
                   <option value="mkv">MKV (Recommended)</option>
                   <option value="mp4">MP4</option>
                   <option value="ts">TS</option>
+                  <option value="mov">MOV</option>
                 </select>
               </div>
             </div>
@@ -188,6 +225,24 @@
                   <option value="lowest">Lowest</option>
                 </select>
               </div>
+
+              <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5">
+                <div class="flex items-center gap-2">
+                  <Heart size={14} class="text-rose-400 shrink-0" />
+                  <div>
+                    <p class="text-xs text-white/70">Auto Rec Mode</p>
+                    <p class="text-[10px] text-white/30">Record all or favorites only</p>
+                  </div>
+                </div>
+                <select
+                  value={$autoRecMode}
+                  onchange={(e) => setAutoRecMode(e.target.value)}
+                  class="px-3 py-1.5 rounded-lg bg-surface-700 border border-white/8 text-xs text-white/80 outline-none focus:border-accent-500/50 transition-all cursor-pointer"
+                >
+                  <option value="all">All</option>
+                  <option value="favorites">Favorites</option>
+                </select>
+              </div>
               {/if}
 
               <label class="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5 cursor-pointer group hover:bg-surface-700/50 transition-all">
@@ -220,6 +275,23 @@
                 </div>
               </label>
 
+              {#if $pauseForPrivate}
+                <div class="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5">
+                  <div>
+                    <p class="text-xs text-white/70">Concat segments on resume</p>
+                    <p class="text-[10px] text-white/30">Merge files after pause/resume</p>
+                  </div>
+                  <select
+                    class="bg-surface-700 border border-white/10 rounded-lg px-2 py-1 text-xs text-white/80 cursor-pointer"
+                    value={$concatOnResume ? 'yes' : 'no'}
+                    onchange={(e) => setConcatOnResume(e.target.value === 'yes')}
+                  >
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                  </select>
+                </div>
+              {/if}
+
               <label class="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5 cursor-pointer group hover:bg-surface-700/50 transition-all">
                 <div>
                   <p class="text-xs text-white/70 group-hover:text-white/90 transition-colors">Auto Create Folder</p>
@@ -249,6 +321,21 @@
                   <span class="slider"></span>
                 </div>
               </label>
+
+              <label class="flex items-center justify-between gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5 cursor-pointer group hover:bg-surface-700/50 transition-all">
+                <div>
+                  <p class="text-xs text-white/70 group-hover:text-white/90 transition-colors">Show Tags</p>
+                  <p class="text-[10px] text-white/30">Display custom tags on cameras</p>
+                </div>
+                <div class="switch">
+                  <input
+                    type="checkbox"
+                    checked={$showTags}
+                    onchange={(e) => setShowTags(e.target.checked)}
+                  />
+                  <span class="slider"></span>
+                </div>
+              </label>
             </div>
           </div>
         </section>
@@ -264,7 +351,7 @@
                 <p class="text-[11px] text-white/40 mb-1">Default View Mode</p>
                 <div class="flex items-center gap-2">
                   <button
-                    class="flex-1 px-4 py-2 rounded-full border text-xs font-medium transition-all cursor-pointer {$viewMode === 'grid' ? 'bg-accent-500 text-white border-accent-400' : 'bg-surface-700 border-surface-600 text-white/70 hover:bg-surface-600'}"
+                    class="flex-1 px-4 py-2 rounded-full border text-xs font-medium transition-all cursor-pointer {$viewMode === 'grid' ? 'bg-accent-500/50 text-white border-accent-400/50' : 'bg-surface-700 border-surface-600 text-white/70 hover:bg-surface-600'}"
                     onclick={() => setViewMode('grid')}
                   >
                     <div class="flex items-center justify-center gap-2">
@@ -273,7 +360,7 @@
                     </div>
                   </button>
                   <button
-                    class="flex-1 px-4 py-2 rounded-full border text-xs font-medium transition-all cursor-pointer {$viewMode === 'list' ? 'bg-accent-500 text-white border-accent-400' : 'bg-surface-700 border-surface-600 text-white/70 hover:bg-surface-600'}"
+                    class="flex-1 px-4 py-2 rounded-full border text-xs font-medium transition-all cursor-pointer {$viewMode === 'list' ? 'bg-accent-500/50 text-white border-accent-400/50' : 'bg-surface-700 border-surface-600 text-white/70 hover:bg-surface-600'}"
                     onclick={() => setViewMode('list')}
                   >
                     <div class="flex items-center justify-center gap-2">
@@ -292,19 +379,19 @@
                 <p class="text-[11px] text-white/40 mb-1">Group Cameras By</p>
                 <div class="flex items-center gap-2">
                   <button
-                    class="flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer {$groupBy === 'none' ? 'bg-accent-500/15 border-accent-500/30 text-accent-400' : 'bg-surface-700 border-white/8 text-white/50 hover:text-white/70'}"
+                    class="flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer {$groupBy === 'none' ? 'bg-accent-500/50 text-white border-accent-400/50' : 'bg-surface-700 border-white/8 text-white/50 hover:text-white/70'}"
                     onclick={() => setGroupBy('none')}
                   >
                     None
                   </button>
                   <button
-                    class="flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer {$groupBy === 'site' ? 'bg-accent-500/15 border-accent-500/30 text-accent-400' : 'bg-surface-700 border-white/8 text-white/50 hover:text-white/70'}"
+                    class="flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer {$groupBy === 'site' ? 'bg-accent-500/50 text-white border-accent-400/50' : 'bg-surface-700 border-white/8 text-white/50 hover:text-white/70'}"
                     onclick={() => setGroupBy('site')}
                   >
                     Site
                   </button>
                   <button
-                    class="flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer {$groupBy === 'group' ? 'bg-accent-500/15 border-accent-500/30 text-accent-400' : 'bg-surface-700 border-white/8 text-white/50 hover:text-white/70'}"
+                    class="flex-1 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all cursor-pointer {$groupBy === 'group' ? 'bg-accent-500/50 text-white border-accent-400/50' : 'bg-surface-700 border-white/8 text-white/50 hover:text-white/70'}"
                     onclick={() => setGroupBy('group')}
                   >
                     Custom
@@ -405,12 +492,42 @@
                 <p class="text-[11px] text-white/40 mb-0.5">Proxy List (.txt)</p>
                 <p class="text-xs text-white/70 truncate">{$proxyList || 'Not set'}</p>
               </div>
-              <button
-                class="px-4 py-2 rounded-full bg-surface-700 hover:bg-surface-600 border border-white/8 text-xs font-medium text-white/70 hover:text-white/90 transition-all cursor-pointer"
-                onclick={selectProxyList}
-              >
-                Select
-              </button>
+              <div class="flex items-center gap-2">
+                {#if $proxyList}
+                  <button
+                    class="px-3 py-2 rounded-full bg-surface-700 hover:bg-red-500/20 border border-white/8 text-xs font-medium text-white/50 hover:text-red-400 transition-all cursor-pointer"
+                    onclick={clearProxyList}
+                    title="Clear proxy list"
+                  >
+                    <XIcon size={14} />
+                  </button>
+                {/if}
+                <button
+                  class="px-4 py-2 rounded-full bg-surface-700 hover:bg-surface-600 border border-white/8 text-xs font-medium text-white/70 hover:text-white/90 transition-all cursor-pointer"
+                  onclick={selectProxyList}
+                >
+                  Select
+                </button>
+              </div>
+            </div>
+            <!-- Max Proxy Try -->
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5">
+              <GlobeIcon size={16} class="text-indigo-400 shrink-0" />
+              <div class="flex-1">
+                <p class="text-[11px] text-white/40 mb-1">Max Proxy Try</p>
+                <div class="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min="0"
+                    max="50"
+                    placeholder="3"
+                    value={$maxproxytry || 3}
+                    oninput={(e) => setMaxProxyTry(parseInt(e.target.value) || 3)}
+                    class="w-24 px-4 py-2 rounded-xl bg-surface-700 border border-surface-600 text-xs text-white/80 outline-none focus:border-indigo-500 transition-all font-mono"
+                  />
+                  <p class="text-[10px] text-white/30">Number of proxies to try before giving up.</p>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -434,6 +551,26 @@
                     class="w-24 px-4 py-2 rounded-xl bg-surface-700 border border-surface-600 text-xs text-white/80 outline-none focus:border-red-500 transition-all font-mono"
                   />
                   <p class="text-[10px] text-white/30">Auto-stop recording after this time.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Max File Size -->
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-surface-800/80 border border-white/5">
+              <HardDriveIcon size={16} class="text-amber-400 shrink-0" />
+              <div class="flex-1">
+                <p class="text-[11px] text-white/40 mb-1">Max File Size (GB)</p>
+                <div class="flex items-center gap-3">
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    placeholder="0 = No limit"
+                    value={$maxRecFileSize || ''}
+                    oninput={(e) => setMaxRecFileSize(parseFloat(e.target.value) || 0)}
+                    class="w-24 px-4 py-2 rounded-xl bg-surface-700 border border-surface-600 text-xs text-white/80 outline-none focus:border-amber-500 transition-all font-mono"
+                  />
+                  <p class="text-[10px] text-white/30">Auto-split recording when file reaches this size.</p>
                 </div>
               </div>
             </div>
@@ -485,6 +622,15 @@
                 <p class="text-[10px] text-white/30 mt-1">Branch used for extension updates from GitHub.</p>
               </div>
             </div>
+
+            <!-- View Logs Button -->
+            <button
+              class="w-full flex items-center justify-center gap-2 p-3 rounded-xl bg-surface-800/80 border border-white/5 text-xs font-medium text-white/70 hover:bg-surface-700 hover:text-white transition-all cursor-pointer"
+              onclick={openLogs}
+            >
+              <FileText size={14} />
+              Ver Logs
+            </button>
           </div>
         </section>
 

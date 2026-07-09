@@ -1,27 +1,65 @@
-import { app, shell, BrowserWindow, ipcMain, dialog, Tray, session, Notification, screen } from 'electron'
-import { autoUpdater } from 'electron-updater'
-import { join } from 'path'
+import {
+  app,
+  shell,
+  BrowserWindow,
+  ipcMain,
+  dialog,
+  Tray,
+  session,
+  Notification,
+  screen,
+  protocol,
+  net
+} from 'electron'
+import { fetch } from 'undici'
+import { Parser as M3U8Parser } from 'm3u8-parser'
+globalThis.m3u8Parser = M3U8Parser
+import electronUpdater from 'electron-updater'
+import { join, resolve, dirname } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import WarpClass from '../../lib/tools.class.js'
-import { existsSync, writeFileSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
-import path from 'path'
+import {
+  existsSync,
+  writeFileSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+} from 'node:fs'
 import { pathToFileURL } from 'url'
 import SiteExtra from '../../lib/SiteExtra.js'
+import CamsodaProxy from '../../lib/camsodaProxy.class.js'
 import Logger from '../../lib/logger.class.js'
 
-const FolderMain = path.resolve(process.env.USERPROFILE, 'Documents', 'live-rec')
-const UserExtensionsDir = path.join(FolderMain, 'extensions')
+const FolderMain = resolve(process.env.USERPROFILE, 'Documents', 'live-rec')
+const UserExtensionsDir = join(FolderMain, 'extensions')
 const tool = new WarpClass()
+let camsodaProxy = null
+
+WarpClass.setErrorCallback((err) => {
+  if (mainWindow) mainWindow.webContents.send('rec:error', err)
+})
+
+const autoUpdater = electronUpdater.autoUpdater
+const url = require('node:url')
 
 // Auto-discover and load site extensions
-const sitesDir = path.join(path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')), '..', '..', 'extensions')
+const sitesDir = join(
+  dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')),
+  '..',
+  '..',
+  'extensions'
+)
+
+const LogFile = join(FolderMain, 'log.txt')
+
 const ListSites = {}
+
+tool.loadProxyPool()
 
 const loadExtensions = async () => {
   const config = tool.loadjson()
   const useUserExtensions = !is.dev || config.devmode
-
 
   for (const key of Object.keys(ListSites)) delete ListSites[key]
 
@@ -30,7 +68,7 @@ const loadExtensions = async () => {
     const extensionFiles = readdirSync(dir).filter((f) => f.endsWith('Extension.js'))
     for (const file of extensionFiles) {
       try {
-        const filePath = path.join(dir, file)
+        const filePath = join(dir, file)
         const mod = await import(pathToFileURL(filePath).href + '?t=' + Date.now())
         const instance = new mod.default(SiteExtra)
         ListSites[instance.config.name] = instance
@@ -79,9 +117,9 @@ const setupRequestRules = () => {
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:147.0) Gecko/20100101 Firefox/147.0'
 
     if (details && details.requestHeaders) {
-      details.requestHeaders['Access-Control-Allow-Origin'] = '*'
-      details.requestHeaders['Origin'] = ''
-      details.requestHeaders['User-Agent'] = ua
+      //details.requestHeaders['Access-Control-Allow-Origin'] = '*'
+      //details.requestHeaders['Origin'] = ''
+      //details.requestHeaders['User-Agent'] = ua
 
       const matchedRule = patternsToSite.find((p) => p.regex.test(details.url))
       if (matchedRule) {
@@ -96,14 +134,14 @@ const setupRequestRules = () => {
   })
 }
 
-
 let tray = null
 let trayWindow = null
+let mainWindow = null
 
 function createTrayWindow() {
   trayWindow = new BrowserWindow({
-    width: 200,
-    height: 240,
+    width: 210,
+    height: 250,
     show: false,
     frame: false,
     fullscreenable: false,
@@ -112,12 +150,11 @@ function createTrayWindow() {
     alwaysOnTop: true,
     skipTaskbar: true,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false
     }
   })
 
-  // Hide the window when it loses focus
   trayWindow.on('blur', () => {
     if (!trayWindow.webContents.isDevToolsOpened()) {
       trayWindow.hide()
@@ -132,7 +169,7 @@ function createTrayWindow() {
 }
 
 function createWindow() {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1000,
     height: 670,
     show: false,
@@ -140,8 +177,18 @@ function createWindow() {
     frame: false,
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(__dirname, '../preload/index.mjs'),
       sandbox: false
+    }
+  })
+
+  protocol.handle('liverec', (request) => {
+    if(request.url.includes('.jpg')) {
+      const filePath = request.url.slice('liverec://'.length).split('/')[6]
+      return net.fetch(url.pathToFileURL(join(FolderMain, 'temp', filePath)).toString())
+    } else {
+      Logger.error('One or more thumbnails failed to load')
+      return
     }
   })
 
@@ -173,18 +220,29 @@ function createWindow() {
     }
   })
 
-
-  
-
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  })
 
   if (!existsSync(FolderMain)) {
     mkdirSync(FolderMain, { recursive: true })
+  }
+
+  const tempFolder = join(FolderMain, 'temp')
+  if (!existsSync(tempFolder)) {
+    mkdirSync(tempFolder, { recursive: true })
+  }
+
+  if (!existsSync(LogFile)) {
+    writeFileSync(LogFile, '')
   }
 
   if (!existsSync(FolderMain + '/config.json')) {
     const data = {
       savefolder: '',
       ffmpegselect: '',
+      mkvmergepath: '',
+      mkvmergenable: true,
       naspath: '',
       autorec: false,
       autocreatefolder: false,
@@ -193,7 +251,9 @@ function createWindow() {
       dateformat: 'model-site-dd-MM-yyyy_hh-mm-ss',
       updatetime: 25,
       reclist: [],
-      extbranch: 'main'
+      extbranch: 'main',
+      maxproxytry: 3,
+      concatonresume: true
     }
     writeFileSync(FolderMain + '/config.json', JSON.stringify(data, null, ' '))
   }
@@ -214,6 +274,8 @@ function createWindow() {
   }
 }
 
+app.commandLine.appendSwitch('log-level', '3')
+
 app.whenReady().then(async () => {
   await loadExtensions()
   setupRequestRules()
@@ -226,8 +288,6 @@ app.whenReady().then(async () => {
 
   // Toggle main window on left click
   tray.on('click', () => {
-    const windows = BrowserWindow.getAllWindows()
-    const mainWindow = windows.find(w => w !== trayWindow)
     if (mainWindow) {
       if (mainWindow.isVisible()) {
         mainWindow.hide()
@@ -242,6 +302,7 @@ app.whenReady().then(async () => {
 
   // Show custom context menu on right click
   tray.on('right-click', () => {
+    if (trayWindow && trayWindow.isVisible()) return
     const trayBounds = tray.getBounds()
     const { width: menuWidth, height: menuHeight } = trayWindow.getBounds()
 
@@ -271,6 +332,7 @@ app.whenReady().then(async () => {
   })
 
   let dateformat = ''
+  let ffmpegparams = ''
 
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
@@ -281,74 +343,123 @@ app.whenReady().then(async () => {
   })
 
   ipcMain.on('rec:add', async (event, args) => {
-    Logger.success(`Add Model ${args.name} - ${args.provider}`)
-    const instance = ListSites[args.provider]
-    const info = await instance.getInfo(args.name)
+    try {
+      Logger.success(`Add Model ${args.name} - ${args.provider}`)
+      const instance = ListSites[args.provider]
+      const info = await instance.getInfo(args.name)
 
-    let url
-    if (info.status !== instance.status_types.OFFLINE && info.status !== instance.status_types.NOT_EXIST) {
-      url = await instance.extract(args.name, info)
-    } else {
-      url = instance.extension.createResponse({
-        nametag: args.name,
-        status: info.status,
-        thumb: info.thumb
-      })
-    }
+      let url
+      if (
+        info.status !== instance.status_types.OFFLINE &&
+        info.status !== instance.status_types.NOT_EXIST
+      ) {
+        url = await instance.extract(args.name, info)
+        url.force_type = instance.config.force_type
+      } else {
+        url = instance.extension.createResponse({
+          nametag: args.name,
+          status: info.status,
+          thumb: info.thumb,
+          force_type: instance.config.force_type
+        })
+      }
 
-    if (url.status == 'online' || url.status == 'offline' || url.status == 'private') {
-      await tool.recInit({ nametag: args.name, provider: args.provider, dateformat })
-      setTimeout(() => {
-        const recStatus = tool.getRecording(args.name, args.provider)
-        if (recStatus) {
-          url.statusRec = recStatus.statusRec
-          url.paused = recStatus.paused
-          url.timeRec = recStatus.statusRec ? recStatus.timeRec : 0
-          url.realtime = recStatus.realtime
-          url.codec = recStatus.codec
-          url.stats = recStatus.stats
-        }
-
+      if (url.status == 'online' || url.status == 'offline' || url.status == 'private') {
+        await tool.recInit({ nametag: args.name, provider: args.provider, dateformat })
+        setTimeout(() => {
+          const recStatus = tool.getRecording(args.name, args.provider)
+          if (recStatus) {
+            url.statusRec = recStatus.statusRec
+            url.paused = recStatus.paused
+            url.timeRec = recStatus.statusRec ? recStatus.timeRec : 0
+            url.realtime = recStatus.realtime
+            url.codec = recStatus.codec
+            url.stats = recStatus.stats
+            url.force_type = instance.config.force_type
+          }
+          event.reply('rec:add', { data: url, provider: args.provider })
+        }, 500)
+      } else {
         event.reply('rec:add', { data: url, provider: args.provider })
-      }, 500)
-    } else {
-      event.reply('rec:add', { data: url, provider: args.provider })
+      }
+    } catch (err) {
+      Logger.error(`rec:add error (${args.name}):`, err.message)
+      event.reply('rec:add', {
+        data: { nametag: args.name, status: 'offline', url: '', resolutions: [], thumb: '', statusRec: false, timeRec: 0 },
+        provider: args.provider
+      })
     }
   })
 
   ipcMain.on('rec:recovery', async (event, args) => {
-    Logger.info(`Recovery Model ${args.name} - ${args.provider}`)
+    try {
+      Logger.info(`Recovery Model ${args.name} - ${args.provider}`)
 
-    const instance = ListSites[args.provider]
-    const info = await instance.getInfo(args.name)
+      const instance = ListSites[args.provider]
+      const info = await instance.getInfo(args.name)
+      const referer = instance && instance.config.domain ? `https://${instance.config.domain}/` : ''
 
-    let url
-    if (info.status !== instance.status_types.OFFLINE && info.status !== instance.status_types.NOT_EXIST) {
-      url = await instance.extract(args.name, info)
-    } else {
-      url = instance.extension.createResponse({
-        nametag: args.name,
-        status: info.status,
-        thumb: info.thumb
-      })
-    }
+      let url
+      if (
+        info.status !== instance.status_types.OFFLINE &&
+        info.status !== instance.status_types.NOT_EXIST &&
+        info.status !== instance.status_types.PRIVATE
+      ) {
+        url = await instance.extract(args.name, info)
+        url.force_type = instance.config.force_type
+      } else {
+        url = instance.extension.createResponse({
+          nametag: args.name,
+          status: info.status,
+          thumb: info.thumb,
+          force_type: instance.config.force_type
+        })
+      }
 
-    if (url.status == 'online' || url.status == 'offline' || url.status == 'private') {
-      await tool.recInit({ nametag: args.name, provider: args.provider, dateformat })
-      setTimeout(() => {
-        const recStatus = tool.getRecording(args.name, args.provider)
-        if (recStatus) {
-          url.statusRec = recStatus.statusRec
-          url.paused = recStatus.paused
-          url.timeRec = recStatus.statusRec ? recStatus.timeRec : 0
-          url.realtime = recStatus.realtime
-          url.codec = recStatus.codec
-          url.stats = recStatus.stats
+      Logger.info(`Recovery URL: instance - ${info.status}/${url.status}/${url.nametag}`)
+
+      if (url.status == 'online' || url.status == 'offline' || url.status == 'private') {
+        const existingRec = tool.getRecording(args.name, args.provider)
+        if (existingRec && existingRec.startTime && url.status === 'online') {
+          const streamUrl = url.resolutions?.length > 0 ? url.resolutions[0].url : null
+          if (streamUrl) {
+            Logger.info(`Recovery: starting recording for ${args.name} with fresh URL`)
+            await tool.rec(args.name, 'startRec', streamUrl, 'online', args.provider, dateformat, null, null, ffmpegparams, referer, true, '')
+          }
+          const recStatus = tool.getRecording(args.name, args.provider)
+          url.statusRec = recStatus?.statusRec || false
+          url.paused = recStatus?.paused || false
+          url.timeRec = recStatus?.statusRec ? recStatus.timeRec : 0
+          url.realtime = recStatus?.realtime || false
+          url.codec = recStatus?.codec || null
+          url.stats = recStatus?.stats || null
+          url.force_type = instance.config.force_type
+          event.reply('rec:recovery', { data: url, provider: args.provider })
+        } else {
+          await tool.recInit({ nametag: args.name, provider: args.provider, dateformat, referer })
+          setTimeout(() => {
+            const recStatus = tool.getRecording(args.name, args.provider)
+            if (recStatus) {
+              url.statusRec = recStatus.statusRec
+              url.paused = recStatus.paused
+              url.timeRec = recStatus.statusRec ? recStatus.timeRec : 0
+              url.realtime = recStatus.realtime
+              url.codec = recStatus.codec
+              url.stats = recStatus.stats
+              url.force_type = instance.config.force_type
+            }
+            event.reply('rec:recovery', { data: url, provider: args.provider })
+          }, 500)
         }
+      } else {
         event.reply('rec:recovery', { data: url, provider: args.provider })
-      }, 500)
-    } else {
-      event.reply('rec:recovery', { data: url, provider: args.provider })
+      }
+    } catch (err) {
+      Logger.error(`rec:recovery error (${args.name}):`, err.message)
+      event.reply('rec:recovery', {
+        data: { nametag: args.name, status: 'offline', url: '', resolutions: [], thumb: '', statusRec: false, timeRec: 0 },
+        provider: args.provider
+      })
     }
   })
 
@@ -358,61 +469,220 @@ app.whenReady().then(async () => {
   })
 
   ipcMain.on('res:status', async (event, args) => {
-    const statusData = await ListSites[args.provider].update(args.nametag)
-    
-    // Auto-pause/stop logic in main process for better reliability
-    const rec = await tool.rec(
-      args.nametag,
-      'checkRec',
-      '',
-      statusData.status,
-      args.provider,
-      dateformat
-    )
-    
-    if (rec) {
-      event.reply('rec:live:status', {
+    try {
+      const instance = ListSites[args.provider]
+      const referer = instance && instance.config.domain ? `https://${instance.config.domain}/` : ''
+      const statusData = await ListSites[args.provider].update(args.nametag)
+
+      const rec = await tool.rec(
+        args.nametag,
+        'checkRec',
+        statusData.url ? statusData.url : '',
+        statusData.status,
+        args.provider,
+        dateformat,
+        null,
+        null,
+        ffmpegparams,
+        referer
+      )
+
+      if (rec) {
+        const recFileSize = tool.getRecording(args.nametag, args.provider)?.fileSize || 0
+        event.reply('rec:live:status', {
+          nametag: args.nametag,
+          provider: args.provider,
+          status: rec.recording || rec.paused || false,
+          paused: rec.paused || false,
+          realtime: rec.realtime || false,
+          codec: rec.codec || null,
+          stats: rec.stats || null,
+          timeRec: tool.getRecTime(rec),
+          outputPath: rec.outputPath || null,
+          url: rec.url || null,
+          selresolution: rec.selresolution || null,
+          provider_: rec.provider || args.provider,
+          files: rec.files || [],
+          fileSize: recFileSize,
+          startTime: rec.startTime || null
+        })
+      }
+
+      event.reply('res:status', {
         nametag: args.nametag,
         provider: args.provider,
-        status: rec.recording || rec.paused || false,
-        paused: rec.paused || false,
-        realtime: rec.realtime || false,
-        codec: rec.codec || null,
-        stats: rec.stats || null,
-        timeRec: tool.getRecTime(rec)
+        data: statusData
+      })
+    } catch (err) {
+      Logger.error(`res:status error (${args.nametag}):`, err.message)
+      event.reply('res:status', {
+        nametag: args.nametag,
+        provider: args.provider,
+        data: { status: 'offline', thumb: '', url: '' }
       })
     }
-
-    event.reply('res:status', {
-      nametag: args.nametag,
-      provider: args.provider,
-      data: statusData
-    })
   })
 
   ipcMain.on('rec:live:status', async (event, args) => {
-    const rec = await tool.rec(
-      args.nametag,
-      args.type,
-      args.url ? args.url : '',
-      args.status,
-      args.provider,
-      dateformat
-    )
-    event.reply('rec:live:status', {
-      nametag: args.nametag,
-      provider: args.provider,
-      status: rec?.recording || rec?.paused || false,
-      paused: rec?.paused || false,
-      realtime: rec?.realtime || false,
-      codec: rec?.codec || null,
-      stats: rec?.stats || null,
-      timeRec: rec ? tool.getRecTime(rec) : 0
-    })
+    try {
+      let url = args.url
+      let referer = ''
+      if (args.type === 'startRec') {
+        const instance = ListSites[args.provider]
+        if (instance && instance.config.get_url_new) {
+      if (args.provider === 'chaturbate' && instance.getStreamUrlForRec) {
+          const proxy = tool.assignProxyToStream(args.nametag, args.provider)
+          const result = await instance.getStreamUrlForRec(args.nametag, proxy, args.selresolution)
+          if (result.url) url = result.url
+        } else if (args.provider === 'chaturbate' && instance.getStreamUrl) {
+          const proxy = tool.assignProxyToStream(args.nametag, args.provider)
+          const freshUrl = await instance.getStreamUrl(args.nametag, proxy, args.selresolution)
+          if (freshUrl) url = freshUrl
+        } else if (args.provider === 'stripchat' && instance.getStreamUrl) {
+          const freshUrl = await instance.getStreamUrl(args.nametag, args.selresolution)
+          if (freshUrl) url = freshUrl
+          } else {
+            if (!url) {
+              const fresh = await instance.extract(args.nametag)
+              url = fresh.url
+            }
+          }
+        }
+        if (args.provider === 'camsoda' && url) {
+          if (!camsodaProxy) camsodaProxy = new CamsodaProxy()
+          await camsodaProxy.start()
+          url = camsodaProxy.proxyUrl(url)
+          Logger.info('camsoda proxied url', url)
+        }
+        // Get referer and cookies from site config
+        if (instance && instance.config.domain) {
+          referer = `https://${instance.config.domain}/`
+        }
+      }
+      Logger.info('url', url)
+      Logger.info('url2', args.url)
+
+      const fileSizeBeforeStop = (args.type === 'stopRec')
+        ? (tool.getRecording(args.nametag, args.provider)?.fileSize || 0)
+        : 0
+
+      const rec = await tool.rec(
+        args.nametag,
+        args.type,
+        url ? url : '',
+        args.status,
+        args.provider,
+        dateformat,
+        args.resolution,
+        args.selresolution,
+        ffmpegparams,
+        referer,
+        true,
+        args.cookies
+      )
+      const recFileSize = (args.type === 'stopRec')
+        ? fileSizeBeforeStop
+        : (rec ? tool.getRecording(args.nametag, args.provider)?.fileSize || 0 : 0)
+      event.reply('rec:live:status', {
+        nametag: args.nametag,
+        provider: args.provider,
+        status: rec?.recording || rec?.paused || false,
+        paused: rec?.paused || false,
+        realtime: rec?.realtime || false,
+        codec: rec?.codec || null,
+        stats: rec?.stats || null,
+        timeRec: rec ? tool.getRecTime(rec) : 0,
+        outputPath: rec?.outputPath || null,
+        url: rec?.url || null,
+        selresolution: rec?.selresolution || null,
+        provider_: rec?.provider || args.provider,
+        files: rec?.files || [],
+        fileSize: recFileSize,
+        totalSize: tool.getTotalRecordingSize(),
+        startTime: rec?.startTime || null
+      })
+    } catch (err) {
+      Logger.error(`rec:live:status error (${args.nametag}):`, err.message)
+      event.reply('rec:live:status', {
+        nametag: args.nametag,
+        provider: args.provider,
+        status: false,
+        paused: false,
+        realtime: false,
+        codec: null,
+        stats: null,
+        timeRec: 0
+      })
+    }
   })
 
   ipcMain.on('rec:auto', (event) => {
     event.reply('rec:auto')
+  })
+
+  // Calendar persistence
+  const CalendarFile = join(FolderMain, 'calendar.json')
+
+  function loadCalendar() {
+    try {
+      if (existsSync(CalendarFile)) {
+        return JSON.parse(readFileSync(CalendarFile, 'utf-8'))
+      }
+    } catch (err) {
+      Logger.error('Failed to load calendar.json:', err.message)
+    }
+    return { onlineEvents: [] }
+  }
+
+  function saveCalendar(data) {
+    try {
+      if (!existsSync(FolderMain)) mkdirSync(FolderMain, { recursive: true })
+      writeFileSync(CalendarFile, JSON.stringify(data, null, 2))
+    } catch (err) {
+      Logger.error('Failed to save calendar.json:', err.message)
+    }
+  }
+
+  ipcMain.on('calendar:load', (event) => {
+    event.reply('calendar:load', loadCalendar())
+  })
+
+  ipcMain.on('calendar:track', (event, args) => {
+    const data = loadCalendar()
+    const { nametag, provider, status, timestamp } = args
+
+    if (status === 'online') {
+      const openEvent = data.onlineEvents.find(
+        e => e.nametag === nametag && e.provider === provider && !e.offlineAt
+      )
+      if (!openEvent) {
+        data.onlineEvents.push({
+          nametag,
+          provider,
+          onlineAt: timestamp,
+          offlineAt: null
+        })
+      }
+    } else if (status === 'offline' || status === 'private') {
+      const openEvent = data.onlineEvents.find(
+        e => e.nametag === nametag && e.provider === provider && !e.offlineAt
+      )
+      if (openEvent) {
+        openEvent.offlineAt = timestamp
+      }
+    }
+
+    if (data.onlineEvents.length > 5000) {
+      data.onlineEvents = data.onlineEvents.slice(-5000)
+    }
+
+    saveCalendar(data)
+  })
+
+  ipcMain.on('log:open', () => {
+    if (existsSync(LogFile)) {
+      shell.openPath(LogFile)
+    }
   })
 
   ipcMain.on('window:minimize', () => {
@@ -440,27 +710,32 @@ app.whenReady().then(async () => {
   ipcMain.on('Load:config', (event) => {
     const load = tool.loadjson()
     dateformat = load.dateformat
+    ffmpegparams = load.ffmpegparams || ''
     load.providers = Object.values(ListSites).map((ext) => ext.config)
     load.isDev = is.dev
     event.reply('Load:config', load)
   })
 
-
   ipcMain.on('Modify:config', (event, args) => {
     if (args.name == 'dateformat') dateformat = args.value
+    if (args.name == 'ffmpegparams') ffmpegparams = args.value
 
     if (args.name == 'raw') {
       args.value.map((n) => {
         tool.modifyjson({ raw: { name: n.name, value: n.value } })
       })
+      const config = tool.loadjson()
+      event.reply('Modify:config', config)
     } else {
       tool.modifyjson({ raw: { name: args.name, value: args.value } })
+      if (args.name === 'reclist' || args.name === 'reclistremove' || args.name === 'reclistupdate') {
+        const config = tool.loadjson()
+        event.reply('Modify:config', config)
+      }
     }
   })
 
   ipcMain.on('tray:show-app', () => {
-    const windows = BrowserWindow.getAllWindows()
-    const mainWindow = windows.find(w => w !== trayWindow)
     if (mainWindow) {
       mainWindow.show()
       mainWindow.focus()
@@ -477,8 +752,6 @@ app.whenReady().then(async () => {
 
   // Bridge stats from main window to tray window
   ipcMain.on('tray:get-stats', () => {
-    const windows = BrowserWindow.getAllWindows()
-    const mainWindow = windows.find(w => w !== trayWindow)
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.webContents.send('tray:get-stats')
     }
@@ -492,15 +765,20 @@ app.whenReady().then(async () => {
 
   ipcMain.on('Select:Folder', (event, args) => {
     let localselffmpeg = ''
+    let localselmkvmerge = ''
     let localsavefolder = ''
     let localselproxylist = ''
     try {
       const typeOpen = dialog.showOpenDialogSync({
         properties: [
-          args.type == 'file' || args.type == 'proxylist' ? 'openFile' : args.type == 'folder' ? 'openDirectory' : 'openFile'
+          args.type == 'file' || args.type == 'proxylist' || args.type == 'mkvmerge'
+            ? 'openFile'
+            : args.type == 'folder'
+              ? 'openDirectory'
+              : 'openFile'
         ],
         filters: [
-          args.type == 'proxylist' 
+          args.type == 'proxylist'
             ? { name: 'Text Files', extensions: ['txt'] }
             : { name: 'Executable', extensions: ['exe'] }
         ]
@@ -510,6 +788,9 @@ app.whenReady().then(async () => {
         if (args.type == 'file') {
           localselffmpeg = selectedPath
           tool.modifyjson({ raw: { name: 'ffmpegselect', value: selectedPath } })
+        } else if (args.type == 'mkvmerge') {
+          localselmkvmerge = selectedPath
+          tool.modifyjson({ raw: { name: 'mkvmergepath', value: selectedPath } })
         } else if (args.type == 'folder') {
           localsavefolder = selectedPath
           tool.modifyjson({ raw: { name: 'savefolder', value: selectedPath } })
@@ -517,8 +798,9 @@ app.whenReady().then(async () => {
           localselproxylist = selectedPath
           tool.modifyjson({ raw: { name: 'proxylist', value: selectedPath } })
         }
-        event.reply('Select:Folder', { 
-          ffmpeg: localselffmpeg, 
+        event.reply('Select:Folder', {
+          ffmpeg: localselffmpeg,
+          mkvmerge: localselmkvmerge,
           svfolder: localsavefolder,
           proxylist: localselproxylist
         })
@@ -534,12 +816,41 @@ app.whenReady().then(async () => {
     if (args.path) shell.openPath(args.path)
   })
 
+  ipcMain.handle('download:thumbnail', async (event, { url, filename }) => {
+    if (!url) return null
+    try {
+      const response = await fetch(url)
+      if (!response.ok) return null
+      const buffer = await response.arrayBuffer()
+      const filepath = join(FolderMain, 'temp', `${filename}.jpg`)
+      writeFileSync(filepath, Buffer.from(buffer))
+      return filepath
+    } catch (e) {
+      Logger.error('download:thumbnail error:', e.message)
+      return null
+    }
+  })
+
+  ipcMain.handle('thumbnails:clear', async () => {
+    try {
+      const tempDir = join(FolderMain, 'temp')
+      if (existsSync(tempDir)) {
+        const files = readdirSync(tempDir).filter((f) => f.endsWith('.jpg'))
+        files.forEach((f) => unlinkSync(join(tempDir, f)))
+      }
+      return true
+    } catch (e) {
+      Logger.error('thumbnails:clear error:', e.message)
+      return false
+    }
+  })
+
   ipcMain.on('Config:export', (event) => {
     try {
       const config = tool.loadjson()
       const dest = dialog.showSaveDialogSync({
         title: 'Export Config',
-        defaultPath: path.resolve('live-rec-config.json'),
+        defaultPath: resolve('live-rec-config.json'),
         filters: [{ name: 'JSON', extensions: ['json'] }]
       })
       if (dest) writeFileSync(dest, JSON.stringify(config, null, 2))
@@ -557,7 +868,7 @@ app.whenReady().then(async () => {
       })
       if (src && src.length) {
         const config = JSON.parse(readFileSync(src[0], 'utf8'))
-        writeFileSync(path.join(FolderMain, 'config.json'), JSON.stringify(config, null, 2))
+        writeFileSync(join(FolderMain, 'config.json'), JSON.stringify(config, null, 2))
         event.reply('Load:config', config)
       }
     } catch (e) {
@@ -574,7 +885,10 @@ app.whenReady().then(async () => {
       })
       if (src && src.length) {
         const text = readFileSync(src[0], 'utf8')
-        const lines = text.split('\n').map(l => l.trim()).filter(l => l && !l.startsWith('#'))
+        const lines = text
+          .split('\n')
+          .map((l) => l.trim())
+          .filter((l) => l && !l.startsWith('#'))
         event.reply('Models:imported', lines)
       }
     } catch (e) {
@@ -584,11 +898,12 @@ app.whenReady().then(async () => {
 
   // Auto Updater
   autoUpdater.autoDownload = false
-  
+
   ipcMain.on('updater:check', () => {
-    autoUpdater.checkForUpdates().catch(err => {
+    autoUpdater.checkForUpdates().catch((err) => {
       const window = BrowserWindow.getFocusedWindow()
-      if (window) window.webContents.send('updater:error', err.message || 'Error checking for updates')
+      if (window)
+        window.webContents.send('updater:error', err.message || 'Error checking for updates')
     })
   })
 
@@ -601,30 +916,25 @@ app.whenReady().then(async () => {
   })
 
   autoUpdater.on('update-available', (info) => {
-    const window = BrowserWindow.getAllWindows()[0]
-    if (window) window.webContents.send('updater:available', info)
+    if (mainWindow) mainWindow.webContents.send('updater:available', info)
   })
 
   autoUpdater.on('update-not-available', (info) => {
-    const window = BrowserWindow.getAllWindows()[0]
-    if (window) window.webContents.send('updater:not-available', info)
+    if (mainWindow) mainWindow.webContents.send('updater:not-available', info)
   })
 
   autoUpdater.on('error', (err) => {
-    const window = BrowserWindow.getAllWindows()[0]
-    if (window) window.webContents.send('updater:error', err.message)
+    if (mainWindow) mainWindow.webContents.send('updater:error', err.message)
   })
 
   autoUpdater.on('download-progress', (progressObj) => {
-    const window = BrowserWindow.getAllWindows()[0]
-    if (window) window.webContents.send('updater:progress', progressObj)
+    if (mainWindow) mainWindow.webContents.send('updater:progress', progressObj)
   })
 
   autoUpdater.on('update-downloaded', (info) => {
-    const window = BrowserWindow.getAllWindows()[0]
-    if (window) window.webContents.send('updater:downloaded', info)
+    if (mainWindow) mainWindow.webContents.send('updater:downloaded', info)
   })
-  
+
   ipcMain.on('extensions:list', (event) => {
     const extensions = Object.entries(ListSites).map(([key, ext]) => ({
       name: ext.config.name,
@@ -687,13 +997,13 @@ app.whenReady().then(async () => {
       if (!response.ok) throw new Error('Failed to download extension')
 
       const code = await response.text()
-      
+
       const useUserExtensions = !is.dev || config.devmode
       const targetDir = useUserExtensions ? UserExtensionsDir : sitesDir
-      
+
       if (!existsSync(targetDir)) mkdirSync(targetDir, { recursive: true })
 
-      const filePath = path.join(targetDir, `${className}Extension.js`)
+      const filePath = join(targetDir, `${className}Extension.js`)
       writeFileSync(filePath, code)
 
       await loadExtensions()
@@ -709,23 +1019,23 @@ app.whenReady().then(async () => {
       event.reply('extensions:update', { success: false, name: args.name, error: error.message })
     }
   })
-  
+
   ipcMain.on('extensions:sync-dev', async (event) => {
     try {
       if (!is.dev) throw new Error('Sync only available in dev mode')
       if (!existsSync(UserExtensionsDir)) mkdirSync(UserExtensionsDir, { recursive: true })
-      
-      const files = readdirSync(sitesDir).filter(f => f.endsWith('Extension.js'))
+
+      const files = readdirSync(sitesDir).filter((f) => f.endsWith('Extension.js'))
       for (const file of files) {
-        const src = path.join(sitesDir, file)
-        const dest = path.join(UserExtensionsDir, file)
+        const src = join(sitesDir, file)
+        const dest = join(UserExtensionsDir, file)
         writeFileSync(dest, readFileSync(src))
       }
-      
+
       for (const key of Object.keys(ListSites)) delete ListSites[key]
       await loadExtensions()
       setupRequestRules()
-      
+
       const extensions = Object.entries(ListSites).map(([key, ext]) => ({
         name: ext.config.name,
         version: ext.config.version || '1.0.0'
@@ -743,16 +1053,16 @@ app.whenReady().then(async () => {
       const url = `https://api.github.com/repos/TokyoTF/live-rec/contents/extensions?ref=${branch}`
       const response = await fetch(url)
       if (!response.ok) throw new Error('Failed to fetch extensions from GitHub')
-      
+
       const files = await response.json()
       const extFiles = files
-        .filter(f => f.name.endsWith('Extension.js'))
-        .map(f => ({
+        .filter((f) => f.name.endsWith('Extension.js'))
+        .map((f) => ({
           name: f.name.replace('Extension.js', '').toLowerCase(),
           fileName: f.name,
           downloadUrl: f.download_url
         }))
-        
+
       event.reply('extensions:get-github-list', { success: true, extensions: extFiles })
     } catch (error) {
       event.reply('extensions:get-github-list', { success: false, error: error.message })

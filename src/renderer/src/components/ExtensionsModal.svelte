@@ -2,7 +2,7 @@
   import { XIcon, PuzzleIcon, RefreshCwIcon, DownloadIcon, CheckIcon, LoaderIcon } from 'lucide-svelte'
   import { send, on } from '@lib/ipc.js'
   import { notify } from '@lib/store.js'
-  import { onDestroy } from 'svelte'
+  import { onMount, onDestroy } from 'svelte'
   import { tooltip } from '@lib/tooltip.js'
 
   let { showModal = $bindable(false), closeModal } = $props()
@@ -15,44 +15,45 @@
 
   const unsubs = []
 
-  unsubs.push(on('extensions:list', (_e, data) => {
-    extensions = data
-  }))
+  onMount(() => {
+    unsubs.push(on('extensions:list', (_e, data) => {
+      extensions = data
+    }))
 
-  unsubs.push(on('extensions:check-updates', (_e, data) => {
-    checking = false
-    updates = data.updates || []
-    if (data.updates?.length > 0) {
-      notify(`${data.updates.length} extension updates found`, 'info')
-    }
-  }))
+    unsubs.push(on('extensions:check-updates', (_e, data) => {
+      checking = false
+      updates = data.updates || []
+      if (data.updates?.length > 0) {
+        notify(`${data.updates.length} extension updates found`, 'info')
+      }
+    }))
 
-  unsubs.push(on('extensions:update', (_e, data) => {
-    updating = ''
-    if (data.success && data.extensions) {
-      extensions = data.extensions
-      updates = updates.filter(u => u.name !== data.name)
-      githubExtensions = githubExtensions.filter(g => g.name !== data.name)
-      notify(`${data.name} extension updated!`, 'success')
-      
-      // Reload the app to apply changes
-      setTimeout(() => {
-        send('window:reload')
-      }, 1000)
-    } else {
-      notify(`Failed to update ${data.name}: ${data.error}`, 'error')
-    }
-  }))
+    unsubs.push(on('extensions:update', (_e, data) => {
+      updating = ''
+      if (data.success && data.extensions) {
+        extensions = data.extensions
+        updates = updates.filter(u => u.name !== data.name)
+        githubExtensions = githubExtensions.filter(g => g.name !== data.name)
+        notify(`${data.name} extension updated!`, 'success')
 
-  unsubs.push(on('extensions:get-github-list', (_e, data) => {
-    loadingGithub = false
-    if (data.success) {
+        setTimeout(() => {
+          send('window:reload')
+        }, 1000)
+      } else {
+        notify(`Failed to update ${data.name}: ${data.error}`, 'error')
+      }
+    }))
 
-      githubExtensions = data.extensions.filter(g => 
-        !extensions.some(e => e.name.toLowerCase() === g.name.toLowerCase())
-      )
-    }
-  }))
+    unsubs.push(on('extensions:get-github-list', (_e, data) => {
+      loadingGithub = false
+      if (data.success) {
+
+        githubExtensions = data.extensions.filter(g =>
+          !extensions.some(e => e.name.toLowerCase() === g.name.toLowerCase())
+        )
+      }
+    }))
+  })
 
   onDestroy(() => unsubs.forEach(u => u()))
 
@@ -85,7 +86,7 @@
 
 <!-- Trigger Button -->
 <button
-  class="p-2 bg-surface-700 hover:bg-surface-600 text-white transition-all cursor-pointer rounded-full"
+  class="p-2 bg-surface-600 hover:bg-surface-600/60 text-[#e3e3e3] transition-all cursor-pointer rounded-full"
   onclick={open}
   use:tooltip={"Extensions"}
 >
@@ -100,7 +101,7 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
-      class="bg-surface-800 border border-white/10 rounded-2xl p-5 w-[420px] shadow-2xl shadow-black/40"
+      class="bg-surface-800 border border-white/10 rounded-2xl p-5 w-105 shadow-2xl shadow-black/40"
       onclick={(e) => e.stopPropagation()}
     >
       <!-- Header -->
@@ -128,7 +129,7 @@
       </div>
 
       <!-- Extensions List -->
-      <div class="space-y-1.5 max-h-[400px] overflow-y-auto">
+      <div class="space-y-1.5 max-h-100 overflow-y-auto">
         {#if extensions.length === 0}
           <p class="text-xs text-white/30 text-center py-4">No extensions loaded</p>
         {:else}
@@ -170,7 +171,7 @@
       {#if githubExtensions.length > 0}
         <div class="mt-4 pt-4 border-t border-white/5">
           <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3">Available on GitHub</h3>
-          <div class="space-y-1.5 max-h-[200px] overflow-y-auto">
+          <div class="space-y-1.5 max-h-50 overflow-y-auto">
             {#each githubExtensions as ext}
               <div class="flex items-center justify-between px-3 py-2 rounded-xl bg-surface-700/30 border border-white/5">
                 <span class="text-sm text-white/60 capitalize">{ext.name}</span>

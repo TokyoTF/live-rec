@@ -7,13 +7,14 @@ export default class StripchatExtension {
       color: '#ef4444',
       domain: 'stripchat.com',
       referer: true,
+      get_url_new: true,
       patterns: [
         'https://*.stripchat.com/*',
         'https://*.doppiocdn.live/*',
         'https://*.doppiocdn.com/*',
         'https://*.sacdnssedge.com/*'
       ],
-      version: '1.0.0'
+      version: '1.0.1'
     }
     this.extension = new ExtensionExtra(this.config)
     this.status_types = this.extension.status_types
@@ -68,7 +69,7 @@ export default class StripchatExtension {
 
     const masterUrl = `https://edge-hls.doppiocdn.live/hls/${streamName}/master/${streamName}_auto.m3u8`
     const resData = await this.extension.getResolutions(masterUrl, '#', true)
-    
+
     let resolutions = [], blob, domain
 
     if (resData && resData.streamdata) {
@@ -101,6 +102,19 @@ export default class StripchatExtension {
       thumb,
       force_type:'video/x-mpegUrl'
     })
+  }
+
+  async getStreamUrl(nametag, selresolution) {
+    const extracted = await this.extract(nametag)
+    if (!extracted?.resolutions?.length) return null
+
+    const resolutions = extracted.resolutions
+    if (selresolution) {
+      const height = parseInt(selresolution) || 0
+      const match = resolutions.find(r => r.resolution?.height === height)
+      if (match) return match.url
+    }
+    return resolutions[0].url
   }
 
   async update(nametag) {

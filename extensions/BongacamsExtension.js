@@ -78,7 +78,7 @@ export default class BongacamsExtension {
   }
 
   async update(nametag) {
-    const { status, thumb } = this.getInfo(nametag)
+    const { status, thumb } = await this.getInfo(nametag)
 
     return this.extension.createUpdate({
       status,

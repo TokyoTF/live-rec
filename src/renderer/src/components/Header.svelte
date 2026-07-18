@@ -1,6 +1,6 @@
 <script>
-  import { SettingsIcon, Minus, Square, X, InfoIcon, RotateCwIcon } from 'lucide-svelte'
-  import { toggleSettings } from '@lib/store.js'
+  import { SettingsIcon, Minus, Square, X, InfoIcon, RotateCwIcon, DownloadIcon } from 'lucide-svelte'
+  import { toggleSettings, updateAvailable, updateVersion } from '@lib/store.js'
   import { tooltip } from '@lib/tooltip.js'
   import UpdaterModal from '@components/UpdaterModal.svelte'
   import ExtensionsModal from '@components/ExtensionsModal.svelte'
@@ -19,6 +19,15 @@
   <div class="flex items-center gap-2.5">
     <img width="30" height="30" src={Logo} alt="" />
     <h1 class="text-sm font-bold text-white">Live Rec</h1>
+    {#if $updateAvailable}
+      <button
+        class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold transition-all cursor-pointer"
+        use:tooltip={$updateVersion ? `Update ${$updateVersion} available` : 'Update available'}
+        onclick={() => (updaterModalOpen = true)}
+      >
+        <DownloadIcon size={13} /> Update
+      </button>
+    {/if}
   </div>
 
   <div class="no-drag flex items-center gap-2">

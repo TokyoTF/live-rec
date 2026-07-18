@@ -316,6 +316,10 @@ export const sessionTotalTime = derived(recordingHistory, $h => {
 
 export const totalRecordingSize = writable(0)
 
+// Update availability state (set by updater IPC events)
+export const updateAvailable = writable(false)
+export const updateVersion = writable('')
+
 export function getOnlineCount() { return get(onlineCount) }
 export function getRecordingCount() { return get(recordingCount) }
 export function getTotalCount() { return get(totalCount) }
@@ -883,6 +887,16 @@ export function init() {
         return draft
       })
     }, 1000)
+
+    on('updater:available', (_e, info) => {
+      updateAvailable.set(true)
+      updateVersion.set(info?.version || '')
+    })
+
+    on('updater:downloaded', (_e, info) => {
+      updateAvailable.set(true)
+      updateVersion.set(info?.version || get(updateVersion))
+    })
 
     send('Load:config')
     isInitialized.set(true)

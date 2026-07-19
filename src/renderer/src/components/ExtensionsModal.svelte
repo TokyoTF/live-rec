@@ -1,17 +1,18 @@
 <script>
   import { XIcon, PuzzleIcon, RefreshCwIcon, DownloadIcon, CheckIcon, LoaderIcon } from 'lucide-svelte'
   import { send, on } from '@lib/ipc.js'
-  import { notify } from '@lib/store.js'
+  import { notify, extensionUpdates } from '@lib/store.js'
   import { onMount, onDestroy } from 'svelte'
   import { tooltip } from '@lib/tooltip.js'
 
   let { showModal = $bindable(false), closeModal } = $props()
   let extensions = $state([])
-  let updates = $state([])
   let githubExtensions = $state([])
   let checking = $state(false)
   let updating = $state('')
   let loadingGithub = $state(false)
+
+  const updates = extensionUpdates
 
   const unsubs = []
 
@@ -22,7 +23,6 @@
 
     unsubs.push(on('extensions:check-updates', (_e, data) => {
       checking = false
-      updates = data.updates || []
       if (data.updates?.length > 0) {
         notify(`${data.updates.length} extension updates found`, 'info')
       }
@@ -32,7 +32,6 @@
       updating = ''
       if (data.success && data.extensions) {
         extensions = data.extensions
-        updates = updates.filter(u => u.name !== data.name)
         githubExtensions = githubExtensions.filter(g => g.name !== data.name)
         notify(`${data.name} extension updated!`, 'success')
 
@@ -66,7 +65,6 @@
 
   function close() {
     showModal = false
-    updates = []
   }
 
   function checkUpdates() {
@@ -80,17 +78,22 @@
   }
 
   function getUpdate(name) {
-    return updates.find(u => u.name === name)
+    return $updates.find(u => u.name === name)
   }
 </script>
 
 <!-- Trigger Button -->
 <button
-  class="p-2 bg-surface-600 hover:bg-surface-600/60 text-[#e3e3e3] transition-all cursor-pointer rounded-full"
+  class="relative p-2 bg-surface-600 hover:bg-surface-600/60 text-[#e3e3e3] transition-all cursor-pointer rounded-full"
   onclick={open}
-  use:tooltip={"Extensions"}
+  use:tooltip={$updates.length > 0 ? `${$updates.length} extension update${$updates.length !== 1 ? 's' : ''} available` : "Extensions"}
 >
   <PuzzleIcon size={16} />
+  {#if $updates.length > 0}
+    <span class="absolute -top-1 -right-1 min-w-4 h-4 px-1 flex items-center justify-center rounded-full bg-blue-500 text-white text-[9px] font-bold leading-none">
+      {$updates.length}
+    </span>
+  {/if}
 </button>
 
 <!-- Modal Overlay -->

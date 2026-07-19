@@ -320,6 +320,9 @@ export const totalRecordingSize = writable(0)
 export const updateAvailable = writable(false)
 export const updateVersion = writable('')
 
+// Extension update state
+export const extensionUpdates = writable([])
+
 export function getOnlineCount() { return get(onlineCount) }
 export function getRecordingCount() { return get(recordingCount) }
 export function getTotalCount() { return get(totalCount) }
@@ -898,7 +901,14 @@ export function init() {
       updateVersion.set(info?.version || get(updateVersion))
     })
 
+    on('extensions:check-updates', (_e, data) => {
+      extensionUpdates.set(data.updates || [])
+    })
+
     send('Load:config')
+
+    // Check for extension updates on startup
+    send('extensions:check-updates')
     isInitialized.set(true)
 
 }

@@ -25,7 +25,7 @@
         use:tooltip={$updateVersion ? `Update ${$updateVersion} available` : 'Update available'}
         onclick={() => (updaterModalOpen = true)}
       >
-        <DownloadIcon size={13} /> Update
+        <DownloadIcon size={13} /> Update{$updateVersion ? ` ${$updateVersion}` : ''}
       </button>
     {/if}
   </div>

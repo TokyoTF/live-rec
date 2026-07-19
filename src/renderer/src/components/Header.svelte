@@ -21,7 +21,7 @@
     <h1 class="text-sm font-bold text-white">Live Rec</h1>
     {#if $updateAvailable}
       <button
-        class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold transition-all cursor-pointer"
+        class="no-drag flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-semibold transition-all cursor-pointer"
         use:tooltip={$updateVersion ? `Update ${$updateVersion} available` : 'Update available'}
         onclick={() => (updaterModalOpen = true)}
       >

@@ -316,6 +316,10 @@ export const sessionTotalTime = derived(recordingHistory, $h => {
 
 export const totalRecordingSize = writable(0)
 
+// Update availability state (set by updater IPC events)
+export const updateAvailable = writable(false)
+export const updateVersion = writable('')
+
 export function getOnlineCount() { return get(onlineCount) }
 export function getRecordingCount() { return get(recordingCount) }
 export function getTotalCount() { return get(totalCount) }
@@ -327,6 +331,14 @@ function pickUrl(resolutions) {
   if (q === 'lowest') return resolutions[resolutions.length - 1].url
   if (q === 'optimal') return resolutions[Math.floor(resolutions.length / 2)].url
   return resolutions[0].url // 'best'
+}
+
+function pickResolution(resolutions) {
+  if (!resolutions?.length) return null
+  const q = get(recQuality)
+  if (q === 'lowest') return resolutions[resolutions.length - 1]
+  if (q === 'optimal') return resolutions[Math.floor(resolutions.length / 2)]
+  return resolutions[0] // 'best'
 }
 
 export function setOrderByStatus(v) {
@@ -788,7 +800,8 @@ export function init() {
       })
       sortRecordings()
       if (args.data.status === 'online' && shouldResume && args.data.resolutions?.length) {
-        startRec(args.data.nametag, args.provider, pickUrl(args.data.resolutions))
+        const picked = pickResolution(args.data.resolutions)
+        startRec(args.data.nametag, args.provider, picked?.url || '', args.data.resolutions, picked?.resolution?.height ?? null)
       }
       if (args.data.status === 'online') {
         setTimeout(() => {
@@ -807,7 +820,8 @@ export function init() {
         const rec = get(recordings).find(r => r.nametag === args.nametag && r.provider === args.provider)
         if (rec && rec.status === 'online' && !rec.statusRec && pickUrl(rec.resolutions)) {
           if (mode === 'all' || (mode === 'favorites' && $reclist.some(f => f.nametag === args.nametag && f.provider === args.provider && f.favorite === true))) {
-            startRec(rec.nametag, rec.provider, pickUrl(rec.resolutions))
+            const picked = pickResolution(rec.resolutions)
+            startRec(rec.nametag, rec.provider, picked?.url || '', rec.resolutions, picked?.resolution?.height ?? null)
           }
         }
       } else {
@@ -815,7 +829,8 @@ export function init() {
           if (rec.status === 'online' && !rec.statusRec && pickUrl(rec.resolutions)) {
             const isFav = $reclist.some(f => f.nametag === rec.nametag && f.provider === rec.provider && f.favorite === true)
             if (mode === 'all' || (mode === 'favorites' && isFav)) {
-              startRec(rec.nametag, rec.provider, pickUrl(rec.resolutions))
+              const picked = pickResolution(rec.resolutions)
+              startRec(rec.nametag, rec.provider, picked?.url || '', rec.resolutions, picked?.resolution?.height ?? null)
             }
           }
         })
@@ -872,6 +887,16 @@ export function init() {
         return draft
       })
     }, 1000)
+
+    on('updater:available', (_e, info) => {
+      updateAvailable.set(true)
+      updateVersion.set(info?.version || '')
+    })
+
+    on('updater:downloaded', (_e, info) => {
+      updateAvailable.set(true)
+      updateVersion.set(info?.version || get(updateVersion))
+    })
 
     send('Load:config')
     isInitialized.set(true)

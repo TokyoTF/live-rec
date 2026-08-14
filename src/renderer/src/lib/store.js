@@ -718,10 +718,12 @@ export function init() {
       recordings.update(r => {
         const draft = [...r]
         const group = args.data.group !== undefined ? args.data.group : draft[idx].group
+        const newStatus = args.data.status
+        const newThumb = newStatus === 'offline' ? '' : (args.data.thumb || draft[idx].thumb)
         draft[idx] = {
           ...draft[idx],
-          thumb: args.data.thumb,
-          status: args.data.status,
+          thumb: newThumb,
+          status: newStatus,
           url: args.data.url || draft[idx].url,
           resolutions: args.data.resolutions || draft[idx].resolutions,
           group: group,
@@ -931,7 +933,7 @@ export function loadFromConfig(reclist) {
   isLoaded.set(true)
 
   isInitializing = true
-  const delay = 800
+  const delay = 1500
   const initialDelay = 1500
   setTimeout(() => {
     get(recordings).forEach((item, index) => {

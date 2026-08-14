@@ -111,8 +111,17 @@
       const dayModels = new Map()
       for (const ev of events) {
         const online = ev.onlineAt
-        const offline = ev.offlineAt || Date.now()
-        if (online <= dayEnd && offline >= dayStart) {
+        if (!online) continue
+        const offline = ev.offlineAt || null
+        if (offline === null) {
+          if (online >= dayStart && online <= dayEnd) {
+            const duration = dayEnd - online
+            if (!dayModels.has(ev.nametag)) {
+              dayModels.set(ev.nametag, { nametag: ev.nametag, provider: ev.provider, duration: 0 })
+            }
+            dayModels.get(ev.nametag).duration += duration
+          }
+        } else if (online <= dayEnd && offline >= dayStart) {
           const overlapStart = Math.max(online, dayStart)
           const overlapEnd = Math.min(offline, dayEnd)
           const duration = overlapEnd - overlapStart
@@ -544,26 +553,45 @@
 
         <!-- Model Legend -->
         <div class="p-4 rounded-xl bg-surface-800 border border-white/5 max-h-96 overflow-y-auto">
-          <h3 class="text-xs font-bold text-white/60 uppercase tracking-widest mb-3">Models</h3>
-          <input
-            type="text"
-            placeholder="Search..."
-            bind:value={calModelFilter}
-            class="w-full px-2 py-1 mb-2 bg-surface-900 border border-white/10 rounded-md text-[11px] text-white/80 placeholder-white/25 outline-none focus:border-accent-500/50"
-          />
-          {#if filteredCalModels.length > 0}
-            <div class="space-y-1">
-              {#each filteredCalModels as m}
-                {@const color = getProviderColor(m.provider)}
-                <div class="flex items-center gap-2 py-1">
-                  <span class="w-2 h-2 rounded-full shrink-0" style="background-color: {color};"></span>
-                  <span class="text-[11px] text-white/70 truncate">{m.nametag}</span>
-                  <span class="text-[9px] text-white/30 ml-auto">{m.provider}</span>
-                </div>
-              {/each}
-            </div>
+          <h3 class="text-xs font-bold text-white/60 uppercase tracking-widest mb-3">
+            {selectedDay ? `Models Online` : 'All Models'}
+          </h3>
+          {#if selectedDay}
+            {#if selectedDayModels().length > 0}
+              <div class="space-y-1">
+                {#each selectedDayModels() as m}
+                  {@const color = getProviderColor(m.provider)}
+                  <div class="flex items-center gap-2 py-1">
+                    <span class="w-2 h-2 rounded-full shrink-0" style="background-color: {color};"></span>
+                    <span class="text-[11px] text-white/70 truncate">{m.nametag}</span>
+                    <span class="text-[9px] text-white/30 ml-auto">{m.provider}</span>
+                  </div>
+                {/each}
+              </div>
+            {:else}
+              <div class="text-[11px] text-white/30 text-center py-2">No online models this day</div>
+            {/if}
           {:else}
-            <div class="text-[11px] text-white/30 text-center py-2">No data yet</div>
+            <input
+              type="text"
+              placeholder="Search..."
+              bind:value={calModelFilter}
+              class="w-full px-2 py-1 mb-2 bg-surface-900 border border-white/10 rounded-md text-[11px] text-white/80 placeholder-white/25 outline-none focus:border-accent-500/50"
+            />
+            {#if filteredCalModels.length > 0}
+              <div class="space-y-1">
+                {#each filteredCalModels as m}
+                  {@const color = getProviderColor(m.provider)}
+                  <div class="flex items-center gap-2 py-1">
+                    <span class="w-2 h-2 rounded-full shrink-0" style="background-color: {color};"></span>
+                    <span class="text-[11px] text-white/70 truncate">{m.nametag}</span>
+                    <span class="text-[9px] text-white/30 ml-auto">{m.provider}</span>
+                  </div>
+                {/each}
+              </div>
+            {:else}
+              <div class="text-[11px] text-white/30 text-center py-2">No data yet</div>
+            {/if}
           {/if}
         </div>
       </div>

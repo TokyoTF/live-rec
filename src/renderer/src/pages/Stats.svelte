@@ -112,8 +112,20 @@
       for (const ev of events) {
         const online = ev.onlineAt
         if (!online) continue
-        const offline = ev.offlineAt || null
-        if (offline === null) {
+        const offline = ev.offlineAt
+        if (offline) {
+          if (online <= dayEnd && offline >= dayStart) {
+            const overlapStart = Math.max(online, dayStart)
+            const overlapEnd = Math.min(offline, dayEnd)
+            const duration = overlapEnd - overlapStart
+            if (duration > 0) {
+              if (!dayModels.has(ev.nametag)) {
+                dayModels.set(ev.nametag, { nametag: ev.nametag, provider: ev.provider, duration: 0 })
+              }
+              dayModels.get(ev.nametag).duration += duration
+            }
+          }
+        } else {
           if (online >= dayStart && online <= dayEnd) {
             const duration = dayEnd - online
             if (!dayModels.has(ev.nametag)) {
@@ -121,14 +133,6 @@
             }
             dayModels.get(ev.nametag).duration += duration
           }
-        } else if (online <= dayEnd && offline >= dayStart) {
-          const overlapStart = Math.max(online, dayStart)
-          const overlapEnd = Math.min(offline, dayEnd)
-          const duration = overlapEnd - overlapStart
-          if (!dayModels.has(ev.nametag)) {
-            dayModels.set(ev.nametag, { nametag: ev.nametag, provider: ev.provider, duration: 0 })
-          }
-          dayModels.get(ev.nametag).duration += duration
         }
       }
 

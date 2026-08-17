@@ -650,6 +650,16 @@ app.whenReady().then(async () => {
     }
   }
 
+  const startupCal = loadCalendar()
+  const openEvents = (startupCal.onlineEvents || []).filter(e => !e.offlineAt)
+  if (openEvents.length > 0) {
+    for (const ev of openEvents) {
+      ev.offlineAt = Date.now()
+    }
+    saveCalendar(startupCal)
+    Logger.info(`Closed ${openEvents.length} open calendar event(s) from previous session`)
+  }
+
   ipcMain.on('calendar:load', (event) => {
     event.reply('calendar:load', loadCalendar())
   })

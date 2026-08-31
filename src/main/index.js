@@ -346,7 +346,14 @@ app.whenReady().then(async () => {
     try {
       Logger.success(`Add Model ${args.name} - ${args.provider}`)
       const instance = ListSites[args.provider]
-      const info = await instance.getInfo(args.name)
+      let info
+      try {
+        info = await instance.getInfo(args.name)
+      } catch (infoErr) {
+        Logger.warn(`rec:add getInfo failed for ${args.name}, retrying in 2s:`, infoErr.message)
+        await new Promise(r => setTimeout(r, 2000))
+        info = await instance.getInfo(args.name)
+      }
 
       let url
       if (
@@ -643,6 +650,16 @@ app.whenReady().then(async () => {
     }
   }
 
+  const startupCal = loadCalendar()
+  const openEvents = (startupCal.onlineEvents || []).filter(e => !e.offlineAt)
+  if (openEvents.length > 0) {
+    for (const ev of openEvents) {
+      ev.offlineAt = Date.now()
+    }
+    saveCalendar(startupCal)
+    Logger.info(`Closed ${openEvents.length} open calendar event(s) from previous session`)
+  }
+
   ipcMain.on('calendar:load', (event) => {
     event.reply('calendar:load', loadCalendar())
   })
@@ -677,6 +694,10 @@ app.whenReady().then(async () => {
     }
 
     saveCalendar(data)
+    const mainWin = BrowserWindow.getAllWindows()[0]
+    if (mainWin && !mainWin.isDestroyed()) {
+      mainWin.webContents.send('calendar:load', data)
+    }
   })
 
   ipcMain.on('log:open', () => {

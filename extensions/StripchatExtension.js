@@ -14,17 +14,22 @@ export default class StripchatExtension {
         'https://*.doppiocdn.com/*',
         'https://*.sacdnssedge.com/*'
       ],
-      version: '1.0.1'
+      version: '1.0.2'
     }
     this.extension = new ExtensionExtra(this.config)
     this.status_types = this.extension.status_types
   }
 
   async scrapeApi(nametag) {
-    const res = await this.extension.fetch(
-      `https://stripchat.com/api/front/v2/models/username/${nametag}/cam`
+    const userIdRes = await this.extension.fetch(
+      `https://stripchat.com/api/front/users/user-ids/${nametag}`
     )
-    return await res.json()
+    const { id } = await userIdRes.json()
+
+    const camRes = await this.extension.fetch(
+      `https://stripchat.com/api/front/v2/models/${id}/cam`
+    )
+    return await camRes.json()
   }
 
   async getInfo(nametag) {

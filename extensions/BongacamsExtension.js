@@ -5,12 +5,14 @@ export default class BongacamsExtension {
       color: '#22c55e',
       domain: 'bongacams.com',
       referer: true,
+      use_impit: true,
+      impit_browser: 'firefox',
       patterns: [
         'https://*.bongacams.com/*',
         'https://*.bongacams.net/*',
         'https://*.bcvcdn.com/*'
       ],
-      version: '1.0.0'
+      version: '1.0.1'
     }
     this.extension = new ExtensionExtra(this.config)
     this.status_types = this.extension.status_types
@@ -59,7 +61,7 @@ export default class BongacamsExtension {
 
   async extract(nametag, cachedData = null) {
     const { res, status, thumb } = cachedData || (await this.getInfo(nametag))
-    
+
     if (status === this.status_types.OFFLINE || status === this.status_types.NOT_EXIST) {
       return this.extension.createResponse({ nametag, status, thumb })
     }

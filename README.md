@@ -138,7 +138,7 @@ The built-in **Stats** panel provides comprehensive insights into your recording
 | **Camsoda** | ✅ | ✅ | Uses local proxy for stream rewriting |
 | **Chaturbate** | ✅ | ✅ | Uses local proxy (CBProxy) |
 | **Dreamcam** | ❌ | — | Not implemented |
-| **Stripchat** | ✅ | ✅ | Uses local HLS proxy (StripchatProxy, hardcoded pkey) |
+| **Stripchat** | ✅ | ✅ | Uses local HLS proxy (StripchatProxy) |
 
 ## Platform Support
 

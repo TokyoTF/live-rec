@@ -69,7 +69,9 @@
 
 ### Advanced
 - Local proxy for Camsoda streams
-- Cloudflare bypass for protected sites
+- Cloudflare bypass for protected sites (impit)
+- Local HLS proxy for Stripchat (hardcoded pkey)
+- Resilient reconnect lifecycle (pause on private, force stop)
 - Configurable date formats
 - Auto-delete old recordings
 
@@ -131,12 +133,12 @@ The built-in **Stats** panel provides comprehensive insights into your recording
 
 | Site | Status | Auto-Record | Notes |
 |:---|:---:|:---:|:---|
-| **Bongacams** | ✅ | ✅ | — |
+| **Bongacams** | ✅ | ✅ | Cloudflare bypass via impit (browser TLS fingerprint) |
 | **Cam4** | ✅ | ✅ | — |
 | **Camsoda** | ✅ | ✅ | Uses local proxy for stream rewriting |
 | **Chaturbate** | ✅ | ✅ | Uses local proxy (CBProxy) |
 | **Dreamcam** | ❌ | — | Not implemented |
-| **Stripchat** | ✅ | ✅ | — |
+| **Stripchat** | ✅ | ✅ | Uses local HLS proxy (StripchatProxy) |
 
 ## Platform Support
 
@@ -250,7 +252,14 @@ If you encounter issues with `config.json`:
 </details>
 
 <details>
-<summary><b>Camsoda not recording</b></summary>
+<summary><b>Bongacams not recording</b></summary>
+
+Bongacams is protected by Cloudflare. The app uses `impit` (browser TLS fingerprint impersonation) to bypass it:
+
+- Make sure the app can reach `bongacams.net` from your network
+- If a model shows "not exist", double-check the username spelling
+
+</details>
 
 Camsoda uses a local proxy to rewrite stream URLs. If recording fails:
 
@@ -259,11 +268,15 @@ Camsoda uses a local proxy to rewrite stream URLs. If recording fails:
 
 </details>
 
----
+<details>
+<summary><b>Stripchat not recording</b></summary>
 
-<div>
+Stripchat uses a local HLS proxy (StripchatProxy) to rewrite the master playlist and segments:
 
-**Built with ❤️ using [Electron Vite](https://electron-vite.org/)**
+- Ensure the local port range is not blocked by a firewall
+- The proxy starts/stops automatically with the recording; if a recording stalls, stop and restart it
+
+</details>
 
 </div>
 

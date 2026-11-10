@@ -116,6 +116,10 @@ export function loadCalendarData() {
   send('calendar:load')
 }
 
+export function clearCalendarData() {
+  send('calendar:clear')
+}
+
 export function addToHistory(record) {
   let newHistory
   recordingHistory.update(h => {
@@ -469,6 +473,30 @@ export function selectStream(provider, nametag, url = '') {
   }
 }
 
+// Stream URLs (specially chaturbate HLS tokens) expire. Re-extract a fresh
+// URL for the selected model before re-mounting the player, otherwise showing
+// a previously hidden player fails with a 403 on the manifest.
+export async function refreshCurrentStreamUrl(timeoutMs = 5000) {
+  const cur = get(currentStream)
+  if (!cur?.nametag) return
+  if (cur.url?.startsWith('data:') || cur.url?.startsWith('blob:')) return
+  const rec = get(recordings).find(r => r.nametag === cur.nametag)
+  if (!rec?.provider) return
+
+  try {
+    const fresh = await Promise.race([
+      invoke('res:fresh-url', { nametag: cur.nametag, provider: rec.provider }),
+      new Promise((resolve) => setTimeout(() => resolve(null), timeoutMs))
+    ])
+    const now = get(currentStream)
+    // Discard the response if the user selected another model meanwhile.
+    if (!fresh || now.nametag !== cur.nametag) return
+    if (fresh !== now.url) currentStream.set({ url: fresh, nametag: cur.nametag })
+  } catch {
+    // Keep the previous URL when the refresh fails.
+  }
+}
+
 export function updateAllStatus() {
   get(recordings).forEach((v, i) => {
     setTimeout(() => {
@@ -710,6 +738,13 @@ export function init() {
       const currentView = get(currentStream)
 
       if (idx === -1) return
+
+      // Network/transport error: keep the previous status instead of marking
+      // the model offline (which would also close its calendar event).
+      if (args.data?.error) {
+        console.warn(`[STORE] res:status network error for ${args.nametag}, keeping previous status`)
+        return
+      }
 
       const prevStatus = get(recordings)[idx]?.status
       const cur = get(recordings)[idx]

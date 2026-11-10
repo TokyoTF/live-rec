@@ -30,6 +30,10 @@
   --color-recording: #e74040;
   --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
+:root {
+  --media-accent-color: var(--color-accent-500);
+  --media-border-radius: 0px !important;
+}
 
 
 .plyr__controls {
@@ -39,9 +43,7 @@
 .plyr__progress {
   display: none !important;
 }
-media-player > media-plyr-layout > div.plyr__controls > media-pip-button {
-  display: none !important;
-}
+/* Video.js packaged skin controls live in shadow DOM; pip hiding is handled by skin source if needed. */
 /* ── Base ── */
 html, body {
   margin: 0;
@@ -103,11 +105,10 @@ html, body {
   animation: pulse-online 2s ease-in-out infinite;
 }
 
-/* ── Vidstack overrides ── */
-media-player {
-  border-radius: 8px;
+/* ── Video.js overrides ── */
+live-video-neutral-skin {
   overflow: hidden;
-  --plyr-color-main: var(--color-accent-500);
+  border-radius: 0px !important;
 }
 
 /* ── Switch ── */

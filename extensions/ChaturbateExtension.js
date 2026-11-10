@@ -62,7 +62,10 @@ export default class ChaturbateExtension {
         headers: { 'User-Agent': IPAD_UA },
         signal: AbortSignal.timeout(10000)
       })
-      if (!res.ok) return []
+      if (!res.ok) {
+        try { await res.body?.cancel() } catch { /* ignore */ }
+        return []
+      }
       const data = await res.text()
       const Parser = globalThis.m3u8Parser
       const parser = new Parser()

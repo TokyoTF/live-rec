@@ -4,7 +4,7 @@ out
 .DS_Store
 *.log*
 .vscode
-electron.vite.config.1*.mjs
+electron.vite.config.mjs.*
 bun.lock
 .env
 dev-app-update.yml

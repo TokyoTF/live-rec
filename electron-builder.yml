@@ -11,6 +11,8 @@ files:
   - '!extensions/*'
 asarUnpack:
   - resources/**
+  - node_modules/impit/**
+  - node_modules/impit-*/**
 win:
   executableName: live-rec
 nsis:

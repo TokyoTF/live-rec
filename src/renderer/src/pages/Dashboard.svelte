@@ -31,13 +31,6 @@
     }
   }
 
-  function handleClickOutside(e) {
-    if (searchOpen && searchWrapper && !searchWrapper.contains(e.target)) {
-      searchOpen = false
-      searchQuery = ''
-    }
-  }
-
   const handleKeydown = (e) => {
     if (e.ctrlKey && e.key === 'f') {
       e.preventDefault()
@@ -51,11 +44,9 @@
 
   onMount(() => {
     window.addEventListener('keydown', handleKeydown)
-    window.addEventListener('mousedown', handleClickOutside)
   })
   onDestroy(() => {
     window.removeEventListener('keydown', handleKeydown)
-    window.removeEventListener('mousedown', handleClickOutside)
   })
 
   let filteredRecordings = $derived.by(() => {

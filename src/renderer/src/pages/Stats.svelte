@@ -1,6 +1,6 @@
 <script>
-  import { recordingHistory, recordings, sessionRecordedToday, sessionTotalTime, sessionActiveTime, totalRecordingSize, onlineCount, recordingCount, totalCount, getProviderColor, allTimeStats, calendarData } from '@lib/store.js'
-  import { BarChart3, Clock, HardDrive, Film, Activity, Globe, Heart, Database, User, ChevronLeft, ChevronRight, Calendar, Search } from 'lucide-svelte'
+  import { recordingHistory, recordings, sessionRecordedToday, sessionTotalTime, sessionActiveTime, totalRecordingSize, onlineCount, recordingCount, totalCount, getProviderColor, allTimeStats, calendarData, clearCalendarData, notify } from '@lib/store.js'
+  import { BarChart3, Clock, HardDrive, Film, Activity, Globe, Heart, Database, User, ChevronLeft, ChevronRight, Calendar, Search, Trash2 } from 'lucide-svelte'
 
   let activeTab = $state('overview')
   let modelSortBy = $state('count')
@@ -10,6 +10,8 @@
   let calModelFilter = $state('')
   let detailModel = $state('')
   let detailSearch = $state('')
+  let clearArmed = $state(false)
+  let clearTimer = null
 
   let heatTooltip = $state({ show: false, x: 0, y: 0, day: '', hour: '', count: 0, size: 0 })
 
@@ -67,6 +69,17 @@
   const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
   const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
 
+  // Without a heartbeat (`lastSeen`) we can't prove an event continued past
+  // the day it started. Legacy events were sometimes closed days later when
+  // the app restarted, which painted every day in between as "online".
+  function eventEnd(onlineAt, offlineAt, lastSeenAt, now = Date.now()) {
+    const end = offlineAt || now
+    if (lastSeenAt) return Math.max(onlineAt, Math.min(end, lastSeenAt))
+    const endOfStartDay = new Date(onlineAt)
+    endOfStartDay.setHours(23, 59, 59, 999)
+    return Math.max(onlineAt, Math.min(end, endOfStartDay.getTime()))
+  }
+
   function prevMonth() {
     selectedDay = null
     if (calMonth === 0) { calMonth = 11; calYear-- }
@@ -84,6 +97,19 @@
     calMonth = now.getMonth()
     calYear = now.getFullYear()
     selectedDay = now.getDate()
+  }
+
+  function handleClearCalendar() {
+    if (!clearArmed) {
+      clearArmed = true
+      clearTimeout(clearTimer)
+      clearTimer = setTimeout(() => { clearArmed = false }, 3000)
+      return
+    }
+    clearTimeout(clearTimer)
+    clearArmed = false
+    clearCalendarData()
+    notify('Calendar cleared', 'success')
   }
 
   function getDaysInMonth(year, month) {
@@ -112,22 +138,12 @@
       for (const ev of events) {
         const online = ev.onlineAt
         if (!online) continue
-        const offline = ev.offlineAt
-        if (offline) {
-          if (online <= dayEnd && offline >= dayStart) {
-            const overlapStart = Math.max(online, dayStart)
-            const overlapEnd = Math.min(offline, dayEnd)
-            const duration = overlapEnd - overlapStart
-            if (duration > 0) {
-              if (!dayModels.has(ev.nametag)) {
-                dayModels.set(ev.nametag, { nametag: ev.nametag, provider: ev.provider, duration: 0 })
-              }
-              dayModels.get(ev.nametag).duration += duration
-            }
-          }
-        } else {
-          if (online >= dayStart && online <= dayEnd) {
-            const duration = dayEnd - online
+        const offline = eventEnd(online, ev.offlineAt, ev.lastSeen)
+        if (online <= dayEnd && offline >= dayStart) {
+          const overlapStart = Math.max(online, dayStart)
+          const overlapEnd = Math.min(offline, dayEnd)
+          const duration = overlapEnd - overlapStart
+          if (duration > 0) {
             if (!dayModels.has(ev.nametag)) {
               dayModels.set(ev.nametag, { nametag: ev.nametag, provider: ev.provider, duration: 0 })
             }
@@ -193,8 +209,9 @@
     const grid = Array.from({ length: 7 }, () => Array(24).fill(0))
 
     for (const ev of detailOnlineEvents) {
+      if (!ev.onlineAt) continue
       const start = new Date(ev.onlineAt)
-      const end = ev.offlineAt ? new Date(ev.offlineAt) : new Date()
+      const end = new Date(eventEnd(ev.onlineAt, ev.offlineAt, ev.lastSeen))
       const d = new Date(start)
       while (d <= end) {
         const dayOfWeek = d.getDay()
@@ -516,6 +533,19 @@
                 </button>
               {/if}
             {/each}
+          </div>
+
+          <!-- Clear calendar -->
+          <div class="mt-3 pt-3 border-t border-white/5 flex justify-end">
+            <button
+              onclick={handleClearCalendar}
+              class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] transition-all cursor-pointer {clearArmed
+                ? 'bg-red-500/15 text-red-300 border border-red-500/30'
+                : 'bg-surface-900/60 text-white/40 hover:text-white/80 hover:bg-surface-700 border border-transparent'}"
+            >
+              <Trash2 size={12} />
+              {clearArmed ? 'Click again to confirm' : 'Clear calendar'}
+            </button>
           </div>
         </div>
       </div>

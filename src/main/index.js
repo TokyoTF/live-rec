@@ -25,6 +25,7 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  statSync,
 } from 'node:fs'
 import { pathToFileURL } from 'url'
 import SiteExtra from '../../lib/SiteExtra.js'
@@ -32,6 +33,14 @@ import CamsodaProxy from '../../lib/camsodaProxy.class.js'
 import Logger from '../../lib/logger.class.js'
 
 const FolderMain = resolve(process.env.USERPROFILE, 'Documents', 'live-rec')
+
+// Release the socket when a response body is not going to be read,
+// otherwise the connection stays open and leaks.
+async function drainBody(res) {
+  try {
+    if (res?.body && !res.body.locked) await res.body.cancel()
+  } catch { /* ignore */ }
+}
 const UserExtensionsDir = join(FolderMain, 'extensions')
 const tool = new WarpClass()
 let camsodaProxy = null
@@ -340,6 +349,7 @@ app.whenReady().then(async () => {
 
   app.on('before-quit', () => {
     app.isQuitting = true
+    closeOpenCalendarEvents()
   })
 
   ipcMain.on('rec:add', async (event, args) => {
@@ -428,7 +438,11 @@ app.whenReady().then(async () => {
       if (url.status == 'online' || url.status == 'offline' || url.status == 'private') {
         const existingRec = tool.getRecording(args.name, args.provider)
         if (existingRec && existingRec.startTime && url.status === 'online') {
-          const streamUrl = url.resolutions?.length > 0 ? url.resolutions[0].url : null
+          let streamUrl = url.resolutions?.length > 0 ? url.resolutions[0].url : null
+          if (args.provider === 'stripchat' && instance.getStreamUrlForRec) {
+            const proxyRes = await instance.getStreamUrlForRec(args.name, null)
+            if (proxyRes?.url) streamUrl = proxyRes.url
+          }
           if (streamUrl) {
             Logger.info(`Recovery: starting recording for ${args.name} with fresh URL`)
             await tool.rec(args.name, 'startRec', streamUrl, 'online', args.provider, dateformat, null, null, ffmpegparams, referer, true, '')
@@ -473,6 +487,26 @@ app.whenReady().then(async () => {
   ipcMain.on('rec:live:remove', async (event, args) => {
     Logger.remove(`Remove Model ${args.nametag}`)
     tool.removeRec(args.nametag, args.provider)
+    closeCalendarEventFor(args.nametag, args.provider, Date.now())
+  })
+
+  ipcMain.handle('res:fresh-url', async (_event, args) => {
+    try {
+      const instance = ListSites[args.provider]
+      if (!instance) return null
+      const info = await instance.getInfo(args.nametag)
+      if (
+        info.status === instance.status_types.OFFLINE ||
+        info.status === instance.status_types.NOT_EXIST
+      ) {
+        return null
+      }
+      const data = await instance.extract(args.nametag, info)
+      return data?.url || null
+    } catch (err) {
+      Logger.warn(`res:fresh-url error (${args.nametag}):`, err.message)
+      return null
+    }
   })
 
   ipcMain.on('res:status', async (event, args) => {
@@ -522,10 +556,12 @@ app.whenReady().then(async () => {
       })
     } catch (err) {
       Logger.error(`res:status error (${args.nametag}):`, err.message)
+      // Transient network failure: tell the renderer it was an error, NOT that
+      // the model went offline, so the UI/calendar don't flip to offline.
       event.reply('res:status', {
         nametag: args.nametag,
         provider: args.provider,
-        data: { status: 'offline', thumb: '', url: '' }
+        data: { error: true, message: err.message }
       })
     }
   })
@@ -644,24 +680,80 @@ app.whenReady().then(async () => {
   function saveCalendar(data) {
     try {
       if (!existsSync(FolderMain)) mkdirSync(FolderMain, { recursive: true })
+      data.updatedAt = Date.now()
       writeFileSync(CalendarFile, JSON.stringify(data, null, 2))
     } catch (err) {
       Logger.error('Failed to save calendar.json:', err.message)
     }
   }
 
-  const startupCal = loadCalendar()
-  const openEvents = (startupCal.onlineEvents || []).filter(e => !e.offlineAt)
-  if (openEvents.length > 0) {
-    for (const ev of openEvents) {
-      ev.offlineAt = Date.now()
+  // Best known moment the app was still running for an event: the per-event
+  // heartbeat when available, otherwise the fallback (file mtime / now).
+  function calendarClosePoint(ev, fallback) {
+    const point = Number.isFinite(ev.lastSeen) ? ev.lastSeen : fallback
+    return Math.max(ev.onlineAt || point, Math.min(Date.now(), point))
+  }
+
+  function notifyCalendar(data) {
+    const mainWin = BrowserWindow.getAllWindows()[0]
+    if (mainWin && !mainWin.isDestroyed()) {
+      mainWin.webContents.send('calendar:load', data)
     }
-    saveCalendar(startupCal)
-    Logger.info(`Closed ${openEvents.length} open calendar event(s) from previous session`)
+  }
+
+  // Close the open event for one model (used when it is removed from the list).
+  function closeCalendarEventFor(nametag, provider, timestamp = Date.now()) {
+    try {
+      const data = loadCalendar()
+      const openEvent = (data.onlineEvents || []).find(
+        e => e.nametag === nametag && e.provider === provider && !e.offlineAt
+      )
+      if (!openEvent) return
+      openEvent.offlineAt = calendarClosePoint(openEvent, timestamp)
+      saveCalendar(data)
+      notifyCalendar(data)
+    } catch (err) {
+      Logger.error(`Failed to close calendar event for ${nametag}:`, err.message)
+    }
+  }
+
+  // Close every event left open by a previous session. `timestamp` is the last
+  // moment the app was known to be alive, never "now" if the app was closed
+  // for a long time; otherwise a single event would span weeks and the
+  // calendar would show the model online on every day in between.
+  function closeOpenCalendarEvents(timestamp = Date.now()) {
+    try {
+      const data = loadCalendar()
+      const openEvents = (data.onlineEvents || []).filter(e => !e.offlineAt)
+      if (openEvents.length === 0) return
+      for (const ev of openEvents) {
+        ev.offlineAt = calendarClosePoint(ev, timestamp)
+      }
+      saveCalendar(data)
+      notifyCalendar(data)
+      Logger.info(`Closed ${openEvents.length} open calendar event(s)`)
+    } catch (err) {
+      Logger.error('Failed to close open calendar events:', err.message)
+    }
+  }
+
+  const calendarMtime = existsSync(CalendarFile) ? statSync(CalendarFile).mtimeMs : 0
+  const startupCal = loadCalendar()
+  const startupOpenEvents = (startupCal.onlineEvents || []).filter(e => !e.offlineAt)
+  if (startupOpenEvents.length > 0) {
+    // Use the last write time as the best estimate of when the app stopped,
+    // falling back to now when the file has no usable timestamp.
+    closeOpenCalendarEvents(calendarMtime || Date.now())
   }
 
   ipcMain.on('calendar:load', (event) => {
     event.reply('calendar:load', loadCalendar())
+  })
+
+  ipcMain.on('calendar:clear', () => {
+    saveCalendar({ onlineEvents: [] })
+    notifyCalendar({ onlineEvents: [] })
+    Logger.info('Calendar cleared')
   })
 
   ipcMain.on('calendar:track', (event, args) => {
@@ -672,12 +764,17 @@ app.whenReady().then(async () => {
       const openEvent = data.onlineEvents.find(
         e => e.nametag === nametag && e.provider === provider && !e.offlineAt
       )
-      if (!openEvent) {
+      if (openEvent) {
+        // Heartbeat: proves the model was still online at this moment, so a
+        // later stale close can't stretch the event across days/weeks.
+        openEvent.lastSeen = timestamp
+      } else {
         data.onlineEvents.push({
           nametag,
           provider,
           onlineAt: timestamp,
-          offlineAt: null
+          offlineAt: null,
+          lastSeen: timestamp
         })
       }
     } else if (status === 'offline' || status === 'private') {
@@ -685,7 +782,8 @@ app.whenReady().then(async () => {
         e => e.nametag === nametag && e.provider === provider && !e.offlineAt
       )
       if (openEvent) {
-        openEvent.offlineAt = timestamp
+        openEvent.lastSeen = timestamp
+        openEvent.offlineAt = Math.max(openEvent.onlineAt || timestamp, timestamp)
       }
     }
 
@@ -841,7 +939,7 @@ app.whenReady().then(async () => {
     if (!url) return null
     try {
       const response = await fetch(url)
-      if (!response.ok) return null
+      if (!response.ok) { await drainBody(response); return null }
       const buffer = await response.arrayBuffer()
       const filepath = join(FolderMain, 'temp', `${filename}.jpg`)
       writeFileSync(filepath, Buffer.from(buffer))
@@ -985,9 +1083,9 @@ app.whenReady().then(async () => {
       for (const [name, ext] of Object.entries(ListSites)) {
         try {
           const className = name.charAt(0).toUpperCase() + name.slice(1)
-          const url = `https://raw.githubusercontent.com/TokyoTF/live-rec/${branch}/extensions/${className}Extension.js`
+          const url = `https://raw.githubusercontent.com/TokyoTF/live-rec/refs/heads/${branch}/extensions/${className}Extension.js`
           const response = await fetch(url)
-          if (!response.ok) continue
+          if (!response.ok) { await drainBody(response); continue }
 
           const remoteCode = await response.text()
           const versionMatch = remoteCode.match(/version:\s*'([^']+)'/)
@@ -1013,9 +1111,9 @@ app.whenReady().then(async () => {
       const config = tool.loadjson()
       const branch = config.extbranch || 'main'
       const className = args.name.charAt(0).toUpperCase() + args.name.slice(1)
-      const url = `https://raw.githubusercontent.com/TokyoTF/live-rec/${branch}/extensions/${className}Extension.js`
+      const url = `https://raw.githubusercontent.com/TokyoTF/live-rec/refs/heads/${branch}/extensions/${className}Extension.js`
       const response = await fetch(url)
-      if (!response.ok) throw new Error('Failed to download extension')
+      if (!response.ok) { await drainBody(response); throw new Error('Failed to download extension') }
 
       const code = await response.text()
 
@@ -1073,7 +1171,7 @@ app.whenReady().then(async () => {
       const branch = config.extbranch || 'main'
       const url = `https://api.github.com/repos/TokyoTF/live-rec/contents/extensions?ref=${branch}`
       const response = await fetch(url)
-      if (!response.ok) throw new Error('Failed to fetch extensions from GitHub')
+      if (!response.ok) { await drainBody(response); throw new Error('Failed to fetch extensions from GitHub') }
 
       const files = await response.json()
       const extFiles = files
@@ -1081,7 +1179,7 @@ app.whenReady().then(async () => {
         .map((f) => ({
           name: f.name.replace('Extension.js', '').toLowerCase(),
           fileName: f.name,
-          downloadUrl: f.download_url
+          downloadUrl: `https://raw.githubusercontent.com/TokyoTF/live-rec/refs/heads/${branch}/extensions/${f.name}`
         }))
 
       event.reply('extensions:get-github-list', { success: true, extensions: extFiles })

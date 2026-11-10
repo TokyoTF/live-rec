@@ -8,13 +8,15 @@ export default class StripchatExtension {
       domain: 'stripchat.com',
       referer: true,
       get_url_new: true,
+      force_type: 'video/x-mpegUrl',
       patterns: [
         'https://*.stripchat.com/*',
         'https://*.doppiocdn.live/*',
         'https://*.doppiocdn.com/*',
+        'https://*.doppiocdn.media/*',
         'https://*.sacdnssedge.com/*'
       ],
-      version: '1.0.2'
+      version: '1.1.0'
     }
     this.extension = new ExtensionExtra(this.config)
     this.status_types = this.extension.status_types
@@ -79,7 +81,6 @@ export default class StripchatExtension {
 
     if (resData && resData.streamdata) {
       domain = resData.streamdata.match(/([a-z0-9-]+)\.doppiocdn\.live/g)[0]
-
       resData.streamdata = resData.streamdata.replace(
         /[a-z0-9-]+\.doppiocdn\.live\/hls/g,
         'media-hls.sacdnssedge.com/' + String(domain).split('.')[0]
@@ -109,17 +110,30 @@ export default class StripchatExtension {
     })
   }
 
-  async getStreamUrl(nametag, selresolution) {
-    const extracted = await this.extract(nametag)
-    if (!extracted?.resolutions?.length) return null
+  async getStreamUrlForRec(nametag, selresolution = null) {
+    try {
+      const StripchatProxy = this.extension.getStripchatProxy()
+      const existing = StripchatProxy.getProxy(nametag)
+      if (existing) StripchatProxy.stopProxy(nametag)
 
-    const resolutions = extracted.resolutions
-    if (selresolution) {
-      const height = parseInt(selresolution) || 0
-      const match = resolutions.find(r => r.resolution?.height === height)
-      if (match) return match.url
+      const { status, streamName } = await this.getInfo(nametag)
+      if (!streamName || status !== this.status_types.ONLINE) return null
+
+      // The CDN only serves the real stream to requests carrying
+      // psch=v2&pkey=<token> and hides segment URLs in #EXT-X-MOUFLON:URI tags,
+      // so ffmpeg records through a local rewriting proxy instead of the raw CDN.
+      const proxy = new StripchatProxy(nametag, streamName, selresolution)
+      await proxy.start()
+      return { url: proxy.url }
+    } catch (err) {
+      console.error(`StripchatProxy start failed for ${nametag}:`, err.message)
+      return null
     }
-    return resolutions[0].url
+  }
+
+  async getStreamUrl(nametag, selresolution) {
+    const result = await this.getStreamUrlForRec(nametag, selresolution)
+    return result ? result.url : null
   }
 
   async update(nametag) {
